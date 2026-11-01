@@ -1,0 +1,9 @@
+--- a/src/app/dde-lock.cpp
++++ b/src/app/dde-lock.cpp
+@@ -33,7 +33,7 @@
+ int main(int argc, char *argv[])
+ {
+-#if (DTK_VERSION >= DTK_VERSION_CHECK(5, 6, 8, 7) && DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0))
++#if (DTK_VERSION >= DTK_VERSION_CHECK(9, 9, 9, 9) && DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0))
+     DLogManager::registerLoggingRulesWatcher("org.deepin.dde.lock");
+ #endif

@@ -1,0 +1,31 @@
+# Template file for 'libqtxdg'
+# Qt5-ветка lxqt/libqtxdg (3.12.0) — поставщик Qt5Xdg и Qt5XdgIconLoader,
+# которые требует dtkgui. В Void осталась только Qt6-линия (4.x), поэтому
+# 3.x собираем сами. Плагин иконок ставится в /usr/lib/qt5/plugins.
+pkgname=libqtxdg
+version=3.12.0
+revision=1
+build_style=cmake
+configure_args="-DBUILD_TESTS=OFF -DBUILD_DEV_UTILS=OFF
+ -DCMAKE_INSTALL_LIBDIR=lib
+ -DQTXDGX_ICONENGINEPLUGIN_INSTALL_PATH=/usr/lib/qt5/plugins"
+hostmakedepends="pkg-config lxqt-build-tools"
+makedepends="qt5-devel qt5-svg-devel glib-devel"
+short_desc="Qt5-реализация спецификаций freedesktop.org (libqtxdg)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="LGPL-2.1-or-later"
+homepage="https://github.com/lxqt/libqtxdg"
+distfiles="https://github.com/lxqt/libqtxdg/archive/refs/tags/${version}.tar.gz"
+checksum=084e5fe7b4087d95657be7b5be3668e98bf14c2ba3b150205ebd819508774d45
+
+libqtxdg-devel_package() {
+	short_desc+=" - файлы разработки"
+	depends="qt5-devel qt5-svg-devel
+	 ${sourcepkg}>=${version}_${revision}"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/pkgconfig
+		vmove "usr/lib/*.so"
+		vmove usr/share/cmake
+	}
+}

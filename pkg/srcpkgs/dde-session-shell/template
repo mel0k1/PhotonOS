@@ -1,0 +1,26 @@
+# Template file for 'dde-session-shell'
+# Оболочка сеанса DDE: экран блокировки, диалог выключения, greeter
+# (lightdm). Снимок master 2026-10-26 (коммит 5afd69a): cmake-проект
+# поддерживает Qt5 и Qt6; без qt6-* в masterdir выбирается ветка Qt5
+# (Dtk без суффикса 6). Требует PAM, KF5Wayland, liblightdm-qt5, openssl.
+pkgname=dde-session-shell
+version=25.10.26
+revision=1
+_commit=5afd69af9b45a0462829cbd7d6433a3a7f0e2fc6
+wrksrc="${pkgname}-${_commit}"
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=OFF -DBUILD_GREETER=OFF"
+hostmakedepends="pkg-config"
+makedepends="dtkwidget-devel dtkcore-devel qt5-devel qt5-svg-devel
+ qt5-wayland-devel qt5-x11extras-devel kwayland-devel lightdm-devel
+ pam-devel openssl-devel libxkbcommon-devel dde-qt-dbus-factory-devel
+ gsettings-qt libX11-devel libxcb-devel xcb-util-wm-devel libXi-devel
+ libXcursor-devel libXfixes-devel libXrandr-devel libXext-devel
+ libXtst-devel"
+depends="dde-qt-dbus-factory"
+short_desc="Оболочка сеанса DDE (блокировка, greeter, диалог выключения)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/linuxdeepin/dde-session-shell"
+distfiles="https://github.com/linuxdeepin/dde-session-shell/archive/${_commit}.tar.gz"
+checksum=ea4788d2f1c9ad04a08ff56671a3732d946b167206a0194bf6edd1e4a3aa28db

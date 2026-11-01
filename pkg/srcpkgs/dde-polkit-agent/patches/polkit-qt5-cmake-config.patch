@@ -1,0 +1,14 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -43,7 +43,10 @@
+ find_package(DtkWidget REQUIRED)
+ find_package(Qt5 COMPONENTS Core Widgets DBus Concurrent REQUIRED)
+ 
+-pkg_check_modules(Polkit-qt5 REQUIRED polkit-qt5-1)
++# PhotonOS: Void-овский polkit-qt5-devel не ставит polkit-qt5-1.pc —
++# используем cmake-конфиг PolkitQt5-1.
++find_package(PolkitQt5-1 REQUIRED)
++set(Polkit-qt5_LIBRARIES PolkitQt5-1::Core PolkitQt5-1::Agent PolkitQt5-1::Gui)
+ pkg_check_modules(DFrameworkDBus REQUIRED dframeworkdbus)
+ 
+ 

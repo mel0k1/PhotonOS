@@ -1,0 +1,22 @@
+# Template file for 'lxqt-build-tools'
+# CMake-модули LXQt (линия 0.x с поддержкой Qt5, последняя — 0.13.0).
+# Нужен libqtxdg 3.x; версия 2.x из репозитория Void нацелена на Qt6
+# и не проходит проверку SameMajorVersion для требуемой 0.13.0.
+pkgname=lxqt-build-tools
+version=0.13.0
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config"
+makedepends="qt5-devel"
+short_desc="CMake-модули и утилиты сборки LXQt (Qt5-линия)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="BSD-3-Clause"
+homepage="https://github.com/lxqt/lxqt-build-tools"
+distfiles="https://github.com/lxqt/lxqt-build-tools/archive/refs/tags/${version}.tar.gz"
+checksum=7f45b7ed7f54ec1e119b005d5fccddd9fe8d9a231fb66c41c952f29a08d1f901
+
+post_install() {
+        # Устанавливается только дерево cmake-модулей и макросов.
+        vlicense BSD-3-Clause
+}

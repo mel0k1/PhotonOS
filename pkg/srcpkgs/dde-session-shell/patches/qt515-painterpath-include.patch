@@ -1,0 +1,10 @@
+--- a/plugins/login-gesture/src/gesturepannel.h
++++ b/plugins/login-gesture/src/gesturepannel.h
+@@ -11,6 +11,7 @@
+ #include <QPoint>
+ #include <QVector>
+ #include <QPainter>
++#include <QPainterPath>
+ #include <QMap>
+ #include <QRectF>
+ #include <QStateMachine>

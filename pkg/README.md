@@ -34,8 +34,18 @@ pkg/
 - [x] План и формат определены (см. `docs/PACKAGING.md`)
 - [x] Шаблоны фундамента DTK: `gsettings-qt`, `dtkcommon`, `dtklog`, `dtkcore`, `dtkgui`, `dtkwidget`
 - [x] Шаблон `photon-boot-splash` (кадры анимации + скрипт-тема plymouth)
-- [ ] Пробная сборка всех шаблонов через `xbps-src` на Void-хосте
-- [ ] Метапакет `photon-dde` и шаблоны оболочки DDE
+- [x] Пробная сборка через `xbps-src` на Void-хосте (непривилегированный chroot,
+      xbps-static 0.60): собраны DTK-фундамент, QPA/интеграция Qt5 и оболочка —
+      `dtkcommon`, `dtklog`, `dtkcore`, `dtkgui`, `dtkwidget`,
+      `qt5platform-plugins`, `qt5integration`, `gsettings-qt`, `dwayland`,
+      `deepin-wayland-protocols`, `dbusmenu-qt5`, `dde-qt-dbus-factory` 6.0.1,
+      `dde-session-shell`, `dde-launcher`, `dde-polkit-agent`, `dde-dock` 6.0.17.
+      Патчи: Qt5.15-строгость, cmake-конфиг Void (`polkit-qt5-1`, `PolkitQt5-1`),
+      отключение lightdm-greeter и touch-gesture (ISO на SDDM).
+- [ ] Рабочий стол: старый `dde-desktop` заморожен upstream (код уехал в
+      `dde-shell` 1.x, Qt5-линия deepin 23) — нужен отдельный шаблон+зависимости
+      (dde-application-manager и пр.)
+- [ ] Метапакет `photon-dde`
 - [ ] Сборочный CI для пакетов
 - [ ] Публичный репозиторий + подключение в ISO
 

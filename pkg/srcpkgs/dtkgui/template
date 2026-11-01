@@ -7,10 +7,11 @@ pkgname=dtkgui
 version=5.7.30
 revision=1
 build_style=cmake
+configure_args="-DBUILD_DOCS=OFF -DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config qt5-qmake qt5-host-tools"
-makedepends="dtkcore-devel qt5-devel qt5-x11extras-devel qt5-wayland-devel
- librsvg-devel wayland-devel libxkbcommon-devel libX11-devel libxcb-devel
- extra-cmake-modules"
+makedepends="dtkcore-devel qt5-devel qt5-svg-devel qt5-x11extras-devel qt5-wayland-devel
+ libqt5xdg-devel librsvg-devel wayland-devel libxkbcommon-devel libX11-devel
+ libxcb-devel extra-cmake-modules libgomp-devel"
 short_desc="Графическая библиотека Deepin Tool Kit (DtkGui, Qt5)"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="LGPL-3.0-or-later"
@@ -19,12 +20,12 @@ distfiles="https://github.com/linuxdeepin/dtkgui/archive/refs/tags/${version}.ta
 checksum=559682e5440212113af6effa724cd960a87b14f295e949dde80f15dde0f72a2a
 
 dtkgui-devel_package() {
-	depends="${makedepends} dtkgui>=${version}_${revision}"
-	short_desc+=" - файлы разработки"
-	pkg_install() {
-		vmove usr/include
-		vmove usr/lib/cmake
-		vmove usr/lib/pkgconfig
-		vmove "usr/lib/*.so"
-	}
+        depends="${makedepends} dtkgui>=${version}_${revision}"
+        short_desc+=" - файлы разработки"
+        pkg_install() {
+                vmove usr/include
+                vmove usr/lib/cmake
+                vmove usr/lib/pkgconfig
+                vmove "usr/lib/*.so"
+        }
 }

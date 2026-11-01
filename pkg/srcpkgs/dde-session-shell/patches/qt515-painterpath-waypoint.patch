@@ -1,0 +1,10 @@
+--- a/plugins/login-gesture/src/waypointwidget.cpp
++++ b/plugins/login-gesture/src/waypointwidget.cpp
+@@ -6,6 +6,7 @@
+ #include "waypointmodel.h"
+ 
+ #include <QPainter>
++#include <QPainterPath>
+ #include <QEvent>
+ #include <QMouseEvent>
+ 

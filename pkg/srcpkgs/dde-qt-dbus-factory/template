@@ -1,0 +1,28 @@
+# Template file for 'dde-qt-dbus-factory'
+# С 6.0.1 upstream слил сюда libdframeworkdbus (бывший отдельный пакет,
+# удалён из linuxdeepin) — теперь это qmake-проект: tools + libdframeworkdbus.
+# Ставит libdframeworkdbus.so.2, pkgconfig-модуль dframeworkdbus и
+# DFrameworkdbusConfig.cmake. Линия Qt5 (deepin 23).
+pkgname=dde-qt-dbus-factory
+version=6.0.1
+revision=1
+build_style=qmake
+hostmakedepends="qt5-qmake qt5-host-tools pkg-config"
+makedepends="qt5-devel"
+short_desc="DBus-прокси Deepin и libdframeworkdbus (Qt5)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/linuxdeepin/dde-qt-dbus-factory"
+distfiles="https://github.com/linuxdeepin/dde-qt-dbus-factory/archive/refs/tags/${version}.tar.gz"
+checksum=450f651d2864fa838a0f5f5054905d08d79e1850f95722e755ddb762be55aea3
+
+dde-qt-dbus-factory-devel_package() {
+	depends="${sourcepkg}>=${version}_${revision}"
+	short_desc+=" - файлы разработки"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/cmake
+		vmove usr/lib/pkgconfig
+		vmove "usr/lib/*.so"
+	}
+}

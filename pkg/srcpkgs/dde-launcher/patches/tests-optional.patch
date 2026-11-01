@@ -1,0 +1,13 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -35,7 +35,9 @@
+ 
+ set(BIN_NAME dde-launcher)
+ 
+-add_subdirectory("tests")
++if(BUILD_TESTING)
++    add_subdirectory("tests")
++endif()
+ 
+ # Sources files
+ file(GLOB_RECURSE SRCS "src/*.h" "src/*.cpp")

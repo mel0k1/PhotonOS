@@ -1,0 +1,29 @@
+# Template file for 'dbusmenu-qt5'
+# Qt5-реализация DBusMenu (libdbusmenu-qt, deepin-снапшот 16.04.20160218).
+# Нужна dde-dock для меню иконок системного трея. В Void остались только
+# glib/gtk-варианты, поэтому Qt5-библиотеку собираем сами.
+pkgname=dbusmenu-qt5
+version=0.9.3+16.04.20160218
+revision=1
+wrksrc="libdbusmenu-qt-0.9.3-16.04.20160218-deepin2"
+build_style=cmake
+configure_args="-DWITH_DOC=OFF -DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config"
+makedepends="qt5-devel"
+short_desc="Qt5-библиотека DBusMenu (libdbusmenu-qt)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="LGPL-2.1-or-later"
+homepage="https://github.com/deepin-community/libdbusmenu-qt"
+distfiles="https://github.com/deepin-community/libdbusmenu-qt/archive/refs/tags/${version}-deepin2.tar.gz>dbusmenu-qt5-${version}.tar.gz"
+checksum=6e21cfcba8b0699c5cafe6400ef24a20d46e8c09d3bae6b6a57f6748e26d5f00
+
+dbusmenu-qt5-devel_package() {
+        short_desc+=" - файлы разработки"
+        depends="qt5-devel ${sourcepkg}>=${version}_${revision}"
+        pkg_install() {
+                vmove usr/include
+                vmove usr/lib/cmake
+                vmove usr/lib/pkgconfig
+                vmove "usr/lib/*.so"
+        }
+}

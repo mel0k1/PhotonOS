@@ -6,8 +6,9 @@ pkgname=dtkwidget
 version=5.7.30
 revision=1
 build_style=cmake
+configure_args="-DBUILD_DOCS=OFF -DBUILD_EXAMPLES=OFF -DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config qt5-qmake qt5-host-tools"
-makedepends="dtkcore-devel dtkgui-devel qt5-devel qt5-svg-devel
+makedepends="dtkcore-devel dtkgui-devel qt5-devel qt5-tools-devel qt5-svg-devel
  gsettings-qt startup-notification-devel libX11-devel xcb-util-devel
  libXext-devel libXi-devel"
 short_desc="Библиотека виджетов Deepin Tool Kit (DtkWidget, Qt5)"
@@ -18,12 +19,12 @@ distfiles="https://github.com/linuxdeepin/dtkwidget/archive/refs/tags/${version}
 checksum=7c3e10e71d6d51a39517ba945eccc70508d108484e8ea74d6d6debc3ce3e0384
 
 dtkwidget-devel_package() {
-	depends="${makedepends} dtkwidget>=${version}_${revision}"
-	short_desc+=" - файлы разработки"
-	pkg_install() {
-		vmove usr/include
-		vmove usr/lib/cmake
-		vmove usr/lib/pkgconfig
-		vmove "usr/lib/*.so"
-	}
+        depends="${makedepends} dtkwidget>=${version}_${revision}"
+        short_desc+=" - файлы разработки"
+        pkg_install() {
+                vmove usr/include
+                vmove usr/lib/cmake
+                vmove usr/lib/pkgconfig
+                vmove "usr/lib/*.so"
+        }
 }

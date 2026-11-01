@@ -14,5 +14,5 @@ short_desc="Библиотека журналирования Deepin Tool Kit (D
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="LGPL-2.1-or-later"
 homepage="https://github.com/linuxdeepin/dtklog"
-distfiles="https://codeload.github.com/linuxdeepin/dtklog/tar.gz/refs/heads/release-${version}"
+distfiles="https://codeload.github.com/linuxdeepin/dtklog/tar.gz/refs/heads/release-${version}>dtklog-release-${version}.tar.gz"
 checksum=47e98bd599ee47a03cbc341bcb053e8aed04898afa3f41b27743890fd966c616

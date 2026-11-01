@@ -5,8 +5,9 @@
 # lshw — runtime-зависимость (сбор сведений об оборудовании).
 pkgname=dtkcore
 version=5.7.30
-revision=1
+revision=2
 build_style=cmake
+configure_args="-DBUILD_DOCS=OFF -DBUILD_EXAMPLES=OFF -DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config qt5-qmake qt5-host-tools"
 makedepends="qt5-devel glib-devel dtkcommon dtklog gsettings-qt uchardet-devel icu-devel"
 depends="lshw"
@@ -18,13 +19,13 @@ distfiles="https://github.com/linuxdeepin/dtkcore/archive/refs/tags/${version}.t
 checksum=16863784fbff832a690f404a981ee93017f11875795115b633bffb750172960c
 
 dtkcore-devel_package() {
-	depends="${makedepends} dtkcore>=${version}_${revision}"
-	short_desc+=" - файлы разработки"
-	pkg_install() {
-		vmove usr/include
-		vmove usr/lib/cmake
-		vmove usr/lib/pkgconfig
-		vmove usr/lib/mkspecs
-		vmove "usr/lib/*.so"
-	}
+        depends="${makedepends} dtkcore>=${version}_${revision}"
+        short_desc+=" - файлы разработки"
+        pkg_install() {
+                vmove usr/include
+                vmove usr/lib/cmake
+                vmove usr/lib/pkgconfig
+                vmove usr/lib/qt5/mkspecs
+                vmove "usr/lib/*.so"
+        }
 }

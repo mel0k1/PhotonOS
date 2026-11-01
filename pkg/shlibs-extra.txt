@@ -1,0 +1,15 @@
+# SONAME-записи стека DDE/DTK PhotonOS.
+# Файл аппендится к common/shlibs void-packages на этапе подготовки
+# Формат: soname pkgname-version_revision (XBPS-парсер шlibs требует дефис).
+# сборочного дерева (см. pkg/build.sh) — в upstream эти библиотеки отсутствуют.
+libDWaylandClient.so.5 dwayland-5.24.3_1
+libDWaylandServer.so.5 dwayland-5.24.3_1
+libdbusmenu-qt.so.2 dbusmenu-qt5-0.9.3+16.04.20160218_1
+libdframeworkdbus.so.2 dde-qt-dbus-factory-5.5.22_1
+libdframeworkdbus.so.2 dde-qt-dbus-factory-6.0.1_1
+libdtkcore.so.5 dtkcore-5.7.30_2
+libdtkgui.so.5 dtkgui-5.7.30_1
+libdtklog.so.0 dtklog-0.0.4_1
+libdtkwidget.so.5 dtkwidget-5.7.30_1
+libgsettings-qt.so.1 gsettings-qt-0.2_1
+liblightdm-qt5-3.so.0 liblightdm-qt5-1.32.0_1

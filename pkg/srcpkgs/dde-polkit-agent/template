@@ -1,0 +1,16 @@
+# Template file for 'dde-polkit-agent'
+# Агент PolicyKit DDE (диалоги аутентификации, Qt5-линия 5.5).
+# Зависимости: DtkWidget, Qt5 (Core/Widgets/DBus/Concurrent).
+pkgname=dde-polkit-agent
+version=5.5.22
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config"
+makedepends="dtkwidget-devel dtkcore-devel qt5-devel polkit-qt5-devel dde-qt-dbus-factory-devel"
+short_desc="Агент аутентификации PolicyKit для DDE"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/linuxdeepin/dde-polkit-agent"
+distfiles="https://github.com/linuxdeepin/dde-polkit-agent/archive/refs/tags/${version}.tar.gz"
+checksum=dae9a7f0f80da498d3ed6fe25413392cfde6c7d117bbc9674d0fc8035089429b

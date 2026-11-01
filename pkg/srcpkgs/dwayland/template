@@ -1,0 +1,31 @@
+# Template file for 'dwayland'
+# Qt5-клиент/сервер wayland-оберток Deepin (проект DWayland, ветка master).
+# Форк kwayland с deepin-расширениями; имена целей DWaylandClient/
+# DWaylandServer, конфликтов с kwayland из репозитория Void нет.
+# Снимок master 2025-06-24 (PROJECT_VERSION 5.24.3) — нужен dde-dock 6.0.x.
+pkgname=dwayland
+version=5.24.3
+revision=1
+_commit=8554fb4deeea106f95dc5441e97d7a6dc7680405
+wrksrc="${pkgname}-${_commit}"
+build_style=cmake
+configure_args="-DBUILD_QCH=OFF -DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config extra-cmake-modules"
+makedepends="qt5-devel qt5-wayland-devel deepin-wayland-protocols
+ wayland-devel wayland-protocols libxkbcommon-devel MesaLib-devel"
+short_desc="Qt5-обертки wayland-протоколов Deepin (DWayland)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="LGPL-2.1-or-later"
+homepage="https://github.com/linuxdeepin/dwayland"
+distfiles="https://github.com/linuxdeepin/dwayland/archive/${_commit}.tar.gz"
+checksum=65361313eb6fe8b50100d617b4a7644bb008c5fd3e1fc98a050d06180549c7b9
+
+dwayland-devel_package() {
+        short_desc+=" - файлы разработки"
+        depends="qt5-devel qt5-wayland-devel ${sourcepkg}>=${version}_${revision}"
+        pkg_install() {
+                vmove usr/include
+                vmove usr/lib/cmake
+                vmove "usr/lib/*.so"
+        }
+}
