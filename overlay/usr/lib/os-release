@@ -1,0 +1,10 @@
+NAME="Photon OS"
+PRETTY_NAME="Photon OS 0.1 (Void base)"
+ID=photon
+ID_LIKE=void
+VERSION_ID=0.1
+BUILD_ID=rolling
+HOME_URL="https://github.com/mel0k1/PhotonOS"
+SUPPORT_URL="https://github.com/mel0k1/PhotonOS/issues"
+BUG_REPORT_URL="https://github.com/mel0k1/PhotonOS/issues"
+ANSI_COLOR="0;36"
