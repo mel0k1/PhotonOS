@@ -1,0 +1,15 @@
+# Template file for 'gsettings-qt'
+# Qt5-биндинги GSettings — фундамент настроек Deepin/DTK.
+# В репозиториях Void пакета нет, собираем сами (тег 0.2 upstream).
+pkgname=gsettings-qt
+version=0.2
+revision=1
+build_style=qmake
+hostmakedepends="qt5-qmake qt5-host-tools pkg-config"
+makedepends="qt5-devel glib-devel qt5-declarative-devel"
+short_desc="Qt5-биндинги для GSettings (QGSettings)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="LGPL-3.0-or-later"
+homepage="https://github.com/linuxdeepin/gsettings-qt"
+distfiles="https://github.com/linuxdeepin/gsettings-qt/archive/refs/tags/${version}.tar.gz"
+checksum=f4a18be936e2cfa95c8360746600258fed777c5935b2b3c307316b51f1c804e4

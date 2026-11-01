@@ -1,0 +1,15 @@
+# Template file for 'dtkcommon'
+# Общие cmake-модули и данные DTK: DtkConfig, Dtk6Config и DtkBuildHelper,
+# который требует dtkcore на этапе configure. Qt-независим, работает и для
+# Qt5-, и для Qt6-стека DTK.
+pkgname=dtkcommon
+version=6.7.52
+revision=1
+build_style=cmake
+hostmakedepends="pkg-config"
+short_desc="Общие cmake-модули и данные Deepin Tool Kit"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="BSD-3-Clause"
+homepage="https://github.com/linuxdeepin/dtkcommon"
+distfiles="https://github.com/linuxdeepin/dtkcommon/archive/refs/tags/${version}.tar.gz"
+checksum=19b338ce1145b2000bd61b036ed595f36eedeb4ac6969b196351e0fbaa0e6f45
