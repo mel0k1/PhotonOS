@@ -1,0 +1,45 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'logo/**'
+      - 'LICENSE'
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  iso:
+    name: Сборка live-ISO
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      # тот же образ, которым собирает сам Void Linux
+      image: ghcr.io/void-linux/void-mklive:20250116R1
+      options: --privileged
+      volumes:
+        - /dev:/dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Зависимости контейнера
+        run: command -v git >/dev/null 2>&1 || xbps-install -Sy git
+
+      - name: Сборка ISO
+        run: ./build/build-iso.sh
+        env:
+          REPO: https://repo-ci.voidlinux.org/current
+
+      - name: Публикация артефакта
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotonOS-live-x86_64
+          path: dist/*.iso
+          if-no-files-found: error
+          retention-days: 14
