@@ -1,0 +1,6 @@
+# Runit-сервисы, включаемые в live-образе PhotonOS.
+# Формат: один сервис на строку (имя из /etc/sv).
+dbus
+elogind
+NetworkManager
+sddm

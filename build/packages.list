@@ -1,0 +1,22 @@
+# Список пакетов live-образа PhotonOS.
+# Формат: один пакет на строку, строки с # — комментарии.
+# Ядро задаётся отдельно флагом -v linux-lts в build/build-iso.sh.
+
+# база Void Linux: glibc, runit, xbps, elogind
+base-system
+sudo
+nano
+curl
+git
+
+# сеть
+NetworkManager
+
+# графика: Xorg + лёгкий Qt-десктоп (временный, до готовности DDE)
+xorg
+sddm
+lxqt
+
+# шрифты и интеграция
+noto-fonts-ttf
+xdg-user-dirs
