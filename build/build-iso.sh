@@ -32,10 +32,13 @@ fi
 # 2. сцена оверлея: брендинг + утилиты PhotonOS попадают в корень образа
 log "готовлю оверлей"
 rm -rf "$STAGE"
-mkdir -p "$STAGE/usr/bin"
+mkdir -p "$STAGE/usr/bin" "$STAGE/usr/share/plymouth/themes"
 cp -a "$ROOT/overlay/." "$STAGE/"
 install -m 0755 "$ROOT/ppm/ppm" "$STAGE/usr/bin/ppm"
 install -m 0755 "$ROOT/fetch/photon-fetch" "$STAGE/usr/bin/photon-fetch"
+# загрузочная анимация: каноническое место — шаблон пакета photon-boot-splash
+cp -a "$ROOT/pkg/srcpkgs/photon-boot-splash/files/photon-boot" \
+    "$STAGE/usr/share/plymouth/themes/photon-boot"
 
 # 3. пакеты и сервисы из списков (комментарии и пустые строки игнорируются)
 PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/packages.list" | tr '\n' ' ')
@@ -45,6 +48,7 @@ mkdir -p "$OUT_DIR"
 OUT="$OUT_DIR/PhotonOS-live-$ARCH-$(date +%Y%m%d).iso"
 
 # 4. mklive: glibc-архитектура, ядро linux-lts, оверлей, пакеты, сервисы
+# -C "quiet splash" — командная строка ядра для plymouth-анимации
 cd "$MKLIVE_DIR"
 set -- ./mklive.sh \
     -a "$ARCH" \
@@ -53,7 +57,8 @@ set -- ./mklive.sh \
     -T "PhotonOS Live" \
     -I "$STAGE" \
     -o "$OUT" \
-    -p "$PKGS"
+    -p "$PKGS" \
+    -C "quiet splash"
 if [ -n "$SVC" ]; then
     set -- "$@" -S "$SVC"
 fi

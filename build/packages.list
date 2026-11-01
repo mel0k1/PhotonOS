@@ -17,6 +17,9 @@ xorg
 sddm
 lxqt
 
+# загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
+plymouth
+
 # шрифты и интеграция
 noto-fonts-ttf
 xdg-user-dirs
