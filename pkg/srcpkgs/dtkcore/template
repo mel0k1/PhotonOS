@@ -1,0 +1,30 @@
+# Template file for 'dtkcore'
+# Ядро Deepin Tool Kit, Qt5-линия (тег 5.7.30; PROJECT_VERSION_MAJOR=5
+# автоматически включает Qt5). Требует cmake-конфиги DtkLog (dtklog) и
+# DtkBuildHelper (dtkcommon), а также pkg-config модуль gsettings-qt.
+# lshw — runtime-зависимость (сбор сведений об оборудовании).
+pkgname=dtkcore
+version=5.7.30
+revision=1
+build_style=cmake
+hostmakedepends="pkg-config qt5-qmake qt5-host-tools"
+makedepends="qt5-devel glib-devel dtkcommon dtklog gsettings-qt uchardet-devel icu-devel"
+depends="lshw"
+short_desc="Ядро Deepin Tool Kit (DtkCore, Qt5)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="LGPL-3.0-or-later"
+homepage="https://github.com/linuxdeepin/dtkcore"
+distfiles="https://github.com/linuxdeepin/dtkcore/archive/refs/tags/${version}.tar.gz"
+checksum=16863784fbff832a690f404a981ee93017f11875795115b633bffb750172960c
+
+dtkcore-devel_package() {
+	depends="${makedepends} dtkcore>=${version}_${revision}"
+	short_desc+=" - файлы разработки"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/cmake
+		vmove usr/lib/pkgconfig
+		vmove usr/lib/mkspecs
+		vmove "usr/lib/*.so"
+	}
+}
