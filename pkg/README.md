@@ -11,26 +11,34 @@
 пакеты через `xbps-src` (формат шаблонов — как в void-packages) и раздавать их
 через `xbps-rindex`.
 
-## Планируемая структура
+## Текущая структура
 
 ```text
 pkg/
 └── srcpkgs/
-    ├── photon-dde/          # метапакет рабочего стола
-    ├── dtkcore/             # фундамент DTK
-    ├── dtkgui/
-    ├── dtkwidget/
-    ├── dde-session-shell/
+    ├── gsettings-qt/          # QGSettings — настройки Deepin (0.2)
+    ├── dtkcommon/             # cmake-модули DtkConfig/DtkBuildHelper (6.7.52)
+    ├── dtklog/                # логгер DtkLog, systemd OFF (0.0.4)
+    ├── dtkcore/               # ядро DTK, Qt5 (5.7.30)
+    ├── dtkgui/                # графика DTK, Qt5 (5.7.30)
+    ├── dtkwidget/             # виджеты DTK, Qt5 (5.7.30)
+    ├── photon-boot-splash/    # загрузочная plymouth-тема PhotonOS
+    ├── photon-dde/            # метапакет рабочего стола (план)
+    ├── dde-session-shell/     # оболочка DDE (план)
     ├── dde-desktop/
-    ├── dde-dock/
-    └── ...
+    └── dde-dock/
 ```
 
 ## Статус
 
 - [x] План и формат определены (см. `docs/PACKAGING.md`)
-- [ ] Первые шаблоны DTK
+- [x] Шаблоны фундамента DTK: `gsettings-qt`, `dtkcommon`, `dtklog`, `dtkcore`, `dtkgui`, `dtkwidget`
+- [x] Шаблон `photon-boot-splash` (кадры анимации + скрипт-тема plymouth)
+- [ ] Пробная сборка всех шаблонов через `xbps-src` на Void-хосте
+- [ ] Метапакет `photon-dde` и шаблоны оболочки DDE
 - [ ] Сборочный CI для пакетов
 - [ ] Публичный репозиторий + подключение в ISO
 
-Вопросы и предложения — в Issues репозитория.
+Версии и checksums всех шаблонов взяты из реальных релизов upstream,
+имена зависимостей сверены с пакетным индексом Void. Подробности решений
+и честный список рисков — в `docs/PACKAGING.md`.

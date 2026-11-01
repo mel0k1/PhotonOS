@@ -77,9 +77,46 @@ ppm sync && ppm install myapp
 - патчить systemd-юниты в runit-сервисы или в XDG-автозапуск;
 - каждый пакет обязан собираться `xbps-src` на чистом окружении.
 
-## Статус
+## Статус: фундамент DTK упакован
 
-- `pkg/` — сейчас план и документация, первые шаблоны появятся здесь же
-  (см. [pkg/README.md](../pkg/README.md)).
-- Цель — `photon-dde` метапакет, который притянет весь рабочий стол, и
-  переключение `build/packages.list` на DDE.
+Первые шесть шаблонов лежат в `pkg/srcpkgs/` — весь фундамент DTK для Qt5
+(версии и checksums взяты из реальных релизов upstream, имена зависимостей
+сверены с пакетным индексом Void):
+
+| Пакет           | Версия   | Что даёт                                    |
+| --------------- | -------- | ------------------------------------------- |
+| `gsettings-qt`  | 0.2      | QGSettings — настройки Deepin (нет в Void)  |
+| `dtkcommon`     | 6.7.52   | cmake-модули `DtkConfig`, `DtkBuildHelper`  |
+| `dtklog`        | 0.0.4    | логгер `DtkLog` (systemd опционален: OFF)   |
+| `dtkcore`       | 5.7.30   | ядро DTK (Qt5-линия)                        |
+| `dtkgui`        | 5.7.30   | темы/окна DTK                               |
+| `dtkwidget`     | 5.7.30   | виджеты DTK                                 |
+
+Порядок сборки: `gsettings-qt` и `dtkcommon` → `dtklog` → `dtkcore` →
+`dtkgui` → `dtkwidget`.
+
+```sh
+cd void-packages
+cp -r /путь/к/PhotonOS/pkg/srcpkgs/* srcpkgs/
+for p in gsettings-qt dtkcommon dtklog dtkcore dtkgui dtkwidget; do
+    ./xbps-src pkg "$p"
+done
+```
+
+Существенные решения, принятые при упаковке:
+
+- **Qt5, а не Qt6**: master-ветки `linuxdeepin/dtk*` уже Qt6 (6.7.x), поэтому
+  зафиксированы теги **5.7.30** — последняя Qt5-линия DTK.
+- **systemd не нужен**: у `dtklog` JournalAppender собирается только при
+  `BUILD_WITH_SYSTEMD=ON` — на runit-системе выключаем.
+- **Легковесность**: у `dtkgui` FreeImage/libraw опциональны и не включены
+  (`DTK_DISABLE_EX_IMAGE_FORMAT`); SVG-рендер — системный librsvg.
+
+Что осталось проверить на живой сборке `xbps-src` (честный список рисков):
+наличие приватных заголовков Qt5 в пакете `qt5` Void (нужны `Qt5::CorePrivate`
+и т.п.); работа umbrella-конфига `DtkConfig` из `dtkcommon` при
+`find_package(Dtk COMPONENTS Gui)`; конфиг-тесты treeland у `dtkgui`
+(при проблемах — патч на отключение). После обкатки фундамента —
+метапакет `photon-dde` и оболочка: `dde-session-shell`, `dde-desktop`,
+`dde-launcher`, `dde-dock`, `dde-polkit-agent`, затем приложения
+(`deepin-terminal`, `dde-file-manager`, ...).

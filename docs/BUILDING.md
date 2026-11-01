@@ -73,6 +73,32 @@ docker run --rm --privileged -v /dev:/dev -v "$PWD":/work -w /work \
 готовый ISO публикуется артефактом. Тег образа закреплён — при обновлении
 mklive поднимите его вручную.
 
+## Загрузочная анимация
+
+Во время загрузки образ играет фирменный ролик PhotonOS. Механика:
+
+1. Ролик нарезан на **70 кадров PNG (15 fps)** — они лежат в
+   `pkg/srcpkgs/photon-boot-splash/files/photon-boot/` (это же — файлы
+   будущего пакета, а в ISO попадают через оверлей: `build-iso.sh` копирует
+   тему в `/usr/share/plymouth/themes/photon-boot`).
+2. Тема — скрипт Plymouth (`photon-boot.script`): циклически листает кадры,
+   фон `#030303`, кадр вписывается в экран с сохранением пропорций.
+3. Тема включена в `overlay/etc/plymouth/plymouthd.conf`
+   (`Theme=photon-boot`), модуль plymouth добавлен в initramfs через
+   `overlay/usr/lib/dracut/dracut.conf.d/50-photon.conf`, а в `packages.list`
+   добавлен `plymouth`. mklive передаёт ядру `quiet splash`
+   (флаг `-C` в `build-iso.sh`).
+
+Чтобы заменить ролик: положите новый MP4 и перегенерируйте кадры —
+```sh
+cd pkg/srcpkgs/photon-boot-splash/files/photon-boot
+rm -f frame*.png
+ffmpeg -i новый_ролик.mp4 -vf fps=15 -start_number 0 frame%d.png
+```
+и поправьте `n_frames` в `photon-boot.script` (число кадров) и при
+необходимости цвет фона в первых двух строках скрипта. Плавность
+регулируется `divider` — тиков обновления на один кадр.
+
 ## Установка на диск
 
 Установка с образа — штатный `void-installer` из live-сессии (инструмент

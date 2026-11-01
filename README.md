@@ -131,8 +131,10 @@ CI собирает ISO автоматически на каждый push в `ma
 
 - [x] Каркас репозитория: `ppm`, `photon-fetch`, брендинг
 - [x] Сборка ISO через void-mklive + CI на push
+- [x] Загрузочная анимация: plymouth-тема `photon-boot` из фирменного ролика
 - [ ] Собственный репозиторий пакетов PhotonOS
-- [ ] Упаковка DDE для Void (dtk, dde-*)
+- [x] Упаковка DDE, фундамент: `gsettings-qt`, `dtkcommon`, `dtklog`, `dtkcore`, `dtkgui`, `dtkwidget` (шаблоны готовы, очередь за сборкой и обкаткой)
+- [ ] Упаковка оболочки DDE (`dde-session-shell`, `dde-desktop`, `dde-dock`, ...)
 - [ ] Переключение ISO на DDE
 - [ ] Фирменные обои, темы и оформление
 
