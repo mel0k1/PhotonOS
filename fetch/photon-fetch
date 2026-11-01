@@ -1,0 +1,110 @@
+#!/bin/sh
+# photon-fetch — ASCII-сводка о системе PhotonOS
+# Чистый POSIX sh, внешних зависимостей нет. Лицензия: GPL-3.0+
+
+# ---------- цвета ----------
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    C_ART='\033[36m'
+    C_LBL='\033[1;33m'
+    C_OFF='\033[0m'
+else
+    C_ART=''
+    C_LBL=''
+    C_OFF=''
+fi
+
+label() { printf '%b%s:%b ' "$C_LBL" "$1" "$C_OFF"; }
+
+# ---------- информация ----------
+os_name() {
+    f=/usr/lib/os-release
+    [ -r "$f" ] || f=/etc/os-release
+    if [ -r "$f" ]; then
+        # shellcheck disable=SC1090
+        . "$f"
+        echo "${PRETTY_NAME:-${NAME:-Photon OS}}"
+    else
+        echo "Photon OS"
+    fi
+}
+
+uptime_str() {
+    if [ -r /proc/uptime ]; then
+        awk '{s=int($1); d=int(s/86400); h=int(s%86400/3600); m=int(s%3600/60);
+              if (d>0)      printf "%d дн %d ч %d мин", d, h, m;
+              else if (h>0) printf "%d ч %d мин", h, m;
+              else          printf "%d мин", m}' /proc/uptime
+    else
+        echo "n/a"
+    fi
+}
+
+pkg_count() {
+    if command -v xbps-query >/dev/null 2>&1; then
+        xbps-query -l 2>/dev/null | wc -l | tr -d ' '
+    elif command -v dpkg-query >/dev/null 2>&1; then
+        dpkg-query -f '.' -W 2>/dev/null | wc -c | tr -d ' '
+    else
+        echo "n/a"
+    fi
+}
+
+os=$(os_name)
+host=$(uname -n)
+kernel=$(uname -r)
+uptime=$(uptime_str)
+pkgs=$(pkg_count)
+shell=$(basename "${SHELL:-/bin/sh}")
+de=${XDG_CURRENT_DESKTOP:-n/a}
+term=${TERM:-n/a}
+
+cpu=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/[[:space:]]*$//')
+[ -n "$cpu" ] || cpu="n/a"
+
+mem_total=$(awk '/^MemTotal/ {print $2}' /proc/meminfo 2>/dev/null)
+mem_avail=$(awk '/^MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null)
+if [ -n "$mem_total" ] && [ -n "$mem_avail" ]; then
+    mem="$(( (mem_total - mem_avail) / 1024 )) MiB / $(( mem_total / 1024 )) MiB"
+else
+    mem="n/a"
+fi
+
+# подписи выровнены вручную: каждый блок «метка» занимает 10 позиций
+INFO="$(label "ОС        ")$os
+$(label "Хост      ")$host
+$(label "Ядро      ")$kernel
+$(label "Аптайм    ")$uptime
+$(label "Пакеты    ")$pkgs
+$(label "Оболочка  ")$shell
+$(label "ДЕ        ")$de
+$(label "Терминал  ")$term
+$(label "CPU       ")$cpu
+$(label "Память    ")$mem"
+
+# слияние арта (18 строк по 35 символов) и информации
+awk -v art="$C_ART" -v off="$C_OFF" -v info=" $INFO" 'BEGIN { n = split(info, L, "\n") }
+{
+    printf "%s%s%s", art, $0, off
+    pad = 38 - length($0); if (pad < 1) pad = 1
+    printf "%*s", pad, ""
+    if (NR <= n) printf "%s\n", L[NR]; else print ""
+}' <<'ART'
+                                   
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@* 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@*.....@@@@@@@@@@@@@@@@.....%@@% 
+ @@*.....@@@@@@@@@@@@@@@@.....%@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@% 
+ +@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  
+ART
