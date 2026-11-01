@@ -1,0 +1,147 @@
+<div align="center">
+
+# Photon OS
+
+```text
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@*.....@@@@@@@@@@@@@@@@.....%@@%
+@@*.....@@@@@@@@@@@@@@@@.....%@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%
++@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+```
+
+**Лёгкий дистрибутив Linux на базе Void Linux: glibc + runit + XBPS.**
+
+[![CI](https://github.com/mel0k1/PhotonOS/actions/workflows/build.yml/badge.svg)](https://github.com/mel0k1/PhotonOS/actions/workflows/build.yml)
+![Base](https://img.shields.io/badge/base-Void%20Linux-green)
+![Init](https://img.shields.io/badge/init-runit-orange)
+![Libc](https://img.shields.io/badge/libc-glibc-blue)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+
+</div>
+
+## О проекте
+
+PhotonOS — независимый дистрибутив, собранный на проверенной базе Void Linux и
+ориентированный на лёгкость. Ничего лишнего: минимальный базовый набор пакетов,
+быстрый init на **runit**, проверенная пакетная система **XBPS** (вариант
+**glibc**) и фирменные инструменты поверх неё.
+
+Основные решения:
+
+- **База** — Void Linux, rolling release, репозитории совместимы на 100%.
+- **Init** — runit: стартует за секунды, сервисы — три файла в `/etc/sv`.
+- **Библиотеки** — glibc: полная совместимость с проприетарным софтом и DDE.
+- **Пакетник** — `ppm` (Photon Package Manager): обёртка над XBPS с человеческим
+  интерфейсом, цветным выводом и ASCII-логотипом.
+- **Рабочее окружение** — целевой DE: **DDE (Deepin Desktop Environment)**.
+
+## Про DDE — честно
+
+В официальных репозиториях Void Linux сейчас **нет** пакетов DDE, поэтому путь
+такой:
+
+1. Первые образы PhotonOS используют **LXQt** — лёгкий Qt-десктоп из репов
+   Void, ближайший по духу к DDE (Qt, минимализм).
+2. Параллельно готовится **собственный репозиторий пакетов** PhotonOS с DDE:
+   план — [`pkg/`](pkg/README.md), гайд по упаковке —
+   [`docs/PACKAGING.md`](docs/PACKAGING.md).
+3. Как только DDE-пакеты соберутся и обкатаются, ISO переключается на DDE.
+
+## Состав репозитория
+
+```text
+PhotonOS/
+├── build/                  # сборка ISO
+│   ├── build-iso.sh        # обёртка над void-mklive
+│   ├── packages.list       # пакеты live-образа
+│   └── services.list       # runit-сервисы образа
+├── ppm/
+│   └── ppm                 # Photon Package Manager (обёртка над XBPS)
+├── fetch/
+│   └── photon-fetch        # ASCII-сводка о системе
+├── overlay/                # файлы, попадающие в корень ISO
+│   ├── etc/motd, etc/issue
+│   └── usr/lib/os-release  # брендинг системы
+├── logo/photon.txt         # ASCII-логотип
+├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md
+├── pkg/                    # план собственного репозитория пакетов (DDE)
+└── .github/workflows/      # CI: автосборка ISO
+```
+
+## ppm — пакетный менеджер
+
+`ppm` — тонкая обёртка над XBPS: те же скорости, понятные команды, цветной
+вывод. Полная справка — [`docs/PPM.md`](docs/PPM.md).
+
+| Команда                 | Что делает                        | Под капотом      |
+| ----------------------- | --------------------------------- | ---------------- |
+| `ppm sync`              | синхронизировать индексы репо     | `xbps-install -S`  |
+| `ppm install firefox`   | установить пакеты                 | `xbps-install -S`  |
+| `ppm update`            | обновить систему целиком          | `xbps-install -Su` |
+| `ppm remove firefox`    | удалить пакеты с зависимостями    | `xbps-remove -R`   |
+| `ppm search слово`      | поиск по репозиториям             | `xbps-query -Rs`   |
+| `ppm autoremove`        | удалить пакеты-сироты             | `xbps-remove -O`   |
+| `ppm clean`             | очистить кэш пакетов              | `xbps-remove -m`   |
+| `ppm list`              | список установленных              | `xbps-query -l`    |
+
+Установка на работающую систему (или на машину с Void):
+
+```sh
+sudo install -Dm755 ppm/ppm /usr/bin/ppm
+```
+
+## photon-fetch
+
+ASCII-сводка о системе: логотип PhotonOS + ОС, ядро, аптайм, число пакетов,
+оболочка, ДЕ, CPU, память. Чистый POSIX sh, без зависимостей — работает даже в
+голой консоли.
+
+```sh
+./fetch/photon-fetch
+```
+
+## Сборка ISO
+
+Нужен хост Void Linux (или контейнер `ghcr.io/void-linux/void-mklive`), ~10 ГБ
+диска. Подробности — [`docs/BUILDING.md`](docs/BUILDING.md).
+
+```sh
+./build/build-iso.sh          # результат: dist/PhotonOS-live-x86_64-<дата>.iso
+```
+
+CI собирает ISO автоматически на каждый push в `main` (вкладка Actions) —
+образ доступен артефактом сборки. Установка с образа — стандартный
+`void-installer` из live-сессии.
+
+## Дорожная карта
+
+- [x] Каркас репозитория: `ppm`, `photon-fetch`, брендинг
+- [x] Сборка ISO через void-mklive + CI на push
+- [ ] Собственный репозиторий пакетов PhotonOS
+- [ ] Упаковка DDE для Void (dtk, dde-*)
+- [ ] Переключение ISO на DDE
+- [ ] Фирменные обои, темы и оформление
+
+## Благодарности
+
+- [Void Linux](https://voidlinux.org/) — идеальная база и `void-mklive`.
+- [Deepin Desktop Environment](https://www.deepin.org/) — целевой рабочий стол.
+- Обёртка `ppm` ни на что не претендует: под капотом честный XBPS.
+
+## Лицензия
+
+Проект распространяется по [GPL-3.0](LICENSE).

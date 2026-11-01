@@ -1,0 +1,7 @@
+# артефакты сборки
+dist/
+build/.stage-overlay/
+void-mklive/
+xbps-cachedir-*/
+*.iso
+*.sha256
