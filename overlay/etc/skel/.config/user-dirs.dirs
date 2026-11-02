@@ -1,0 +1,8 @@
+# Каталоги пользователя PhotonOS.
+# Desktop закреплён явно: там лежит ярлык «Корзина» из /etc/skel/Desktop.
+XDG_DESKTOP_DIR="$HOME/Desktop"
+XDG_DOWNLOAD_DIR="$HOME/Загрузки"
+XDG_DOCUMENTS_DIR="$HOME/Документы"
+XDG_MUSIC_DIR="$HOME/Музыка"
+XDG_PICTURES_DIR="$HOME/Изображения"
+XDG_VIDEOS_DIR="$HOME/Видео"

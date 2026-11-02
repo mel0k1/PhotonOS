@@ -57,12 +57,20 @@ v0.1 выходит на **LXQt** из репозиториев Void, оформ
 - нижняя панель-док: иконки без текста, крупные, на всю ширину экрана;
 - светлые темы **Arc** (GTK) + **Papirus** (иконки) — плоско, скруглённо,
   близко к фирменному стилю Deepin;
+- фирменная тема иконок **photon** (наследует Papirus): Корзина,
+  «Недавние документы» и Файловый менеджер — из авторских артов
+  (`design/icons-src/`, генератор — `scripts/make_icons.py`);
+- обои: 4 авторских изображения (`design/wallpapers-src/` →
+  `scripts/make_wallpapers.py` → `/usr/share/backgrounds/photon-*.jpg`) +
+  градиент `photon-deepin.png`. По умолчанию — `photon-flow.jpg`;
+  смена — без правки файлов: правый клик по рабочему столу →
+  «Настройки рабочего стола» (вкладка «Обои») или
+  «Настройки внешнего вида» LXQt;
+- на рабочем столе — ярлык «Корзина» (`/etc/skel/Desktop/`);
 - композитор **picom**: тени, полупрозрачность, фоновое размытие (конфиг —
   `/etc/photon/picom.conf`, автозапуск через XDG autostart);
-- фирменные обои-градиент `/usr/share/backgrounds/photon-deepin.png`
-  (генератор — `scripts/make_wallpaper.py`, чистый python);
 - дефолты пользователя — `overlay/etc/skel/.config/`: lxqt.conf, panel.conf,
-  session.conf, настройки pcmanfm-qt и GTK.
+  session.conf, user-dirs.dirs, настройки pcmanfm-qt и GTK.
 
 Честно про DDE: в репозиториях Void его нет, а собственная упаковка (шаблоны
 DTK и оболочки в [`pkg/`](pkg/README.md)) отложена — слишком большой объём
@@ -84,12 +92,15 @@ PhotonOS/
 ├── overlay/                # файлы, попадающие в корень ISO
 │   ├── etc/motd, etc/issue, etc/photon/picom.conf
 │   ├── etc/skel/.config/   # дефолты LXQt в стиле Deepin
-│   ├── usr/share/backgrounds/photon-deepin.png  # фирменные обои
+│   ├── etc/skel/Desktop/   # ярлык «Корзина» на рабочем столе
+│   ├── usr/share/icons/photon/   # фирменная тема иконок (поверх Papirus)
+│   ├── usr/share/backgrounds/    # обои photon-*.jpg + photon-deepin.png
 │   └── usr/lib/os-release  # брендинг системы
+├── design/                 # авторские исходники: иконки и обои
 ├── logo/photon.txt         # ASCII-логотип
 ├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md
 ├── pkg/                    # шаблоны пакетов DDE (на паузе, см. pkg/README.md)
-├── scripts/                # утилиты (make_wallpaper.py, ...)
+├── scripts/                # утилиты (make_icons.py, make_wallpapers.py, ...)
 └── .github/workflows/      # CI: ISO на push, пакеты — вручную
 ```
 
@@ -144,7 +155,9 @@ CI собирает ISO автоматически на каждый push в `ma
 - [x] Сборка ISO через void-mklive + CI на push
 - [x] Загрузочная анимация: plymouth-тема `photon-boot` из фирменного ролика
 - [x] Рабочий стол: LXQt + оформление в духе Deepin (панель-док, picom, Papirus, Arc, обои)
+- [x] Фирменные иконки и обои: тема `photon`, 4 обоев, ярлык «Корзина», смена обоев через настройки
 - [x] Заготовка упаковки DDE: шаблоны DTK и оболочки в `pkg/` (на паузе)
+- [ ] Графический установщик системы
 - [ ] Фирменные приложения PhotonOS (центр управления, приветствие при входе)
 - [ ] Публичный репозиторий пакетов (xbps-rindex) — когда появится свой софт
 

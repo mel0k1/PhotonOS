@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Корзина
+GenericName=Корзина
+Comment=Удалённые файлы
+Exec=pcmanfm-qt trash:///
+Icon=user-trash
+Terminal=false
+Categories=System;FileTools;Utility;
+StartupNotify=false
