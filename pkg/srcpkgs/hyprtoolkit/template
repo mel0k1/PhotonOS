@@ -14,7 +14,8 @@ hostmakedepends="pkg-config hyprwayland-scanner"
 makedepends="aquamarine hyprgraphics hyprutils hyprlang
  wayland-devel wayland-protocols libglvnd-devel pixman-devel libdrm-devel
  libgbm-devel libxkbcommon-devel pango-devel cairo-devel
- iniparser-devel abseil-cpp-devel"
+ iniparser-devel abseil-cpp-devel
+ libpng-devel libjpeg-turbo-devel libwebp-devel librsvg-devel file-devel"
 short_desc="Wayland-native GUI toolkit from the Hyprland ecosystem"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"
