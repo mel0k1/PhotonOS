@@ -53,6 +53,12 @@ jobs:
         env:
           XBPS_ALLOW_CHROOT_BREAKOUT: 1
 
+      - name: bootstrap-update
+        # в образе контейнера xbps 0.59, а свежее дерево требует >= 0.60
+        run: (cd /vp && ./xbps-src bootstrap-update)
+        env:
+          XBPS_ALLOW_CHROOT_BREAKOUT: 1
+
       # Порядок = топологический. hyprland: данные -> базовые библиотеки ->
       # бэкенд -> сам композитор -> экран блокировки/простой/портал.
       # DDE: фундамент DTK -> QPA/интеграция -> библиотеки -> оболочка.

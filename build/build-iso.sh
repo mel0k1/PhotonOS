@@ -90,6 +90,8 @@ if [ "${PHOTON_HYPR:-1}" = 1 ]; then
     fi
     "$ROOT/pkg/build.sh" "$VP_DIR"
     ( cd "$VP_DIR" && ./xbps-src binary-bootstrap )
+    # xbps в контейнере 0.59, свежее дерево требует >= 0.60
+    ( cd "$VP_DIR" && ./xbps-src bootstrap-update )
     for p in $HYPR_CHAIN; do
         ( cd "$VP_DIR" && ./xbps-src pkg "$p" )
     done
