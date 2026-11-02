@@ -27,8 +27,8 @@ MACSHELL="${PHOTON_MACSHELL:-1}"
 
 # Порядок сборки стека Hyprland (топологический; шаблоны в pkg/srcpkgs).
 HYPR_CHAIN="lua5.5 hwdata hyprutils hyprlang glaze hyprland-protocols \
-aquamarine hyprcursor hyprgraphics hyprwire hyprland hyprlock hypridle \
-xdg-desktop-portal-hyprland"
+aquamarine hyprcursor hyprgraphics hyprwire hyprtoolkit \
+hyprland hyprlock hypridle xdg-desktop-portal-hyprland"
 
 log() { printf '\033[36m==> \033[1m%s\033[0m\n' "$1"; }
 

@@ -12,7 +12,9 @@ hostmakedepends="pkg-config hyprwayland-scanner"
 makedepends="wayland-devel wayland-protocols pipewire-devel libdrm-devel
  libgbm-devel hyprlang hyprutils sdbus-c++-devel
  hyprland-protocols
- libuuid-devel glib-devel"
+ libuuid-devel glib-devel hyprtoolkit
+ cairo-devel pango-devel libglvnd-devel
+ libpng-devel libjpeg-turbo-devel libwebp-devel librsvg-devel file-devel"
 depends="xdg-desktop-portal hyprland"
 short_desc="xdg-desktop-portal backend for Hyprland"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
@@ -22,5 +24,5 @@ distfiles="https://github.com/hyprwm/xdg-desktop-portal-hyprland/archive/refs/ta
 checksum=8f9eddad706b0bbca2dc24f9894e07969ec5aed163249d6eac3932cfaf38e6a9
 
 post_install() {
-	vlicense LICENSE
+        vlicense LICENSE
 }

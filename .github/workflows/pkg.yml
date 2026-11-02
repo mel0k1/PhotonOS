@@ -82,7 +82,7 @@ jobs:
             done
           else
             for p in lua5.5 hwdata hyprutils hyprlang glaze hyprland-protocols \
-                     aquamarine hyprcursor hyprgraphics hyprwire \
+                     aquamarine hyprcursor hyprgraphics hyprwire hyprtoolkit \
                      hyprland hyprlock hypridle xdg-desktop-portal-hyprland; do
               echo "::group::=== xbps-src pkg $p ==="
               ./xbps-src pkg "$p"
