@@ -31,6 +31,11 @@ done
 find "$SRC"/srcpkgs -maxdepth 1 -type l -exec cp -P {} "$VP/srcpkgs/" \;
 
 # 2. Записи shlibs (маркер защищает от повторного добавления).
+# Наши версии библиотек Hyprland старше репозиториевых (hyprutils 0.14.3
+# против 0.11.0, другой SOVERSION) и полностью их замещают: записи upstream
+# вычищаем, иначе pkglint поднимает SONAME bump при сборке.
+sed -i -E '/^lib(hyprutils|hyprlang|aquamarine|hyprcursor|hyprgraphics)\.so\.[0-9]+[[:blank:]]/d' \
+    "$VP/common/shlibs"
 if ! grep -q 'PhotonOS shlibs' "$VP/common/shlibs" 2>/dev/null; then
     printf '\n# PhotonOS shlibs\n' >> "$VP/common/shlibs"
     cat "$SRC/shlibs-extra.txt" >> "$VP/common/shlibs"
