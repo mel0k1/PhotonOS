@@ -39,7 +39,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Зависимости контейнера
-        run: command -v git >/dev/null 2>&1 || xbps-install -Sy git
+        # xbps дерева (>= 0.60) новее xbps в образе 2025-01 — обновляем хостовой
+        run: xbps-install -Suy xbps; command -v git >/dev/null 2>&1 || xbps-install -Sy git
 
       - name: Дерево void-packages
         run: git clone --depth=1 https://github.com/void-linux/void-packages /vp
