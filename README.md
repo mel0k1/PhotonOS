@@ -44,22 +44,30 @@ PhotonOS — независимый дистрибутив, собранный �
 
 - **База** — Void Linux, rolling release, репозитории совместимы на 100%.
 - **Init** — runit: стартует за секунды, сервисы — три файла в `/etc/sv`.
-- **Библиотеки** — glibc: полная совместимость с проприетарным софтом и DDE.
+- **Библиотеки** — glibc: полная совместимость со сторонним и проприетарным софтом.
 - **Пакетник** — `ppm` (Photon Package Manager): обёртка над XBPS с человеческим
   интерфейсом, цветным выводом и ASCII-логотипом.
-- **Рабочее окружение** — целевой DE: **DDE (Deepin Desktop Environment)**.
+- **Рабочее окружение** — **LXQt** с оформлением в духе **Deepin**: нижняя
+  панель-док, светлые темы, композитор picom с тенями и блюром.
 
-## Про DDE — честно
+## Рабочий стол: LXQt в духе Deepin
 
-В официальных репозиториях Void Linux сейчас **нет** пакетов DDE, поэтому путь
-такой:
+v0.1 выходит на **LXQt** из репозиториев Void, оформленном под Deepin:
 
-1. Первые образы PhotonOS используют **LXQt** — лёгкий Qt-десктоп из репов
-   Void, ближайший по духу к DDE (Qt, минимализм).
-2. Параллельно готовится **собственный репозиторий пакетов** PhotonOS с DDE:
-   план — [`pkg/`](pkg/README.md), гайд по упаковке —
-   [`docs/PACKAGING.md`](docs/PACKAGING.md).
-3. Как только DDE-пакеты соберутся и обкатаются, ISO переключается на DDE.
+- нижняя панель-док: иконки без текста, крупные, на всю ширину экрана;
+- светлые темы **Arc** (GTK) + **Papirus** (иконки) — плоско, скруглённо,
+  близко к фирменному стилю Deepin;
+- композитор **picom**: тени, полупрозрачность, фоновое размытие (конфиг —
+  `/etc/photon/picom.conf`, автозапуск через XDG autostart);
+- фирменные обои-градиент `/usr/share/backgrounds/photon-deepin.png`
+  (генератор — `scripts/make_wallpaper.py`, чистый python);
+- дефолты пользователя — `overlay/etc/skel/.config/`: lxqt.conf, panel.conf,
+  session.conf, настройки pcmanfm-qt и GTK.
+
+Честно про DDE: в репозиториях Void его нет, а собственная упаковка (шаблоны
+DTK и оболочки в [`pkg/`](pkg/README.md)) отложена — слишком большой объём
+работы ради перегонки целого DE. Шаблоны сохранены (готовая база: `pkg/build.sh`
++ `xbps-src`), но ISO собирается на LXQt.
 
 ## Состав репозитория
 
@@ -74,12 +82,15 @@ PhotonOS/
 ├── fetch/
 │   └── photon-fetch        # ASCII-сводка о системе
 ├── overlay/                # файлы, попадающие в корень ISO
-│   ├── etc/motd, etc/issue
+│   ├── etc/motd, etc/issue, etc/photon/picom.conf
+│   ├── etc/skel/.config/   # дефолты LXQt в стиле Deepin
+│   ├── usr/share/backgrounds/photon-deepin.png  # фирменные обои
 │   └── usr/lib/os-release  # брендинг системы
 ├── logo/photon.txt         # ASCII-логотип
 ├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md
-├── pkg/                    # план собственного репозитория пакетов (DDE)
-└── .github/workflows/      # CI: автосборка ISO
+├── pkg/                    # шаблоны пакетов DDE (на паузе, см. pkg/README.md)
+├── scripts/                # утилиты (make_wallpaper.py, ...)
+└── .github/workflows/      # CI: ISO на push, пакеты — вручную
 ```
 
 ## ppm — пакетный менеджер
@@ -132,16 +143,16 @@ CI собирает ISO автоматически на каждый push в `ma
 - [x] Каркас репозитория: `ppm`, `photon-fetch`, брендинг
 - [x] Сборка ISO через void-mklive + CI на push
 - [x] Загрузочная анимация: plymouth-тема `photon-boot` из фирменного ролика
-- [ ] Собственный репозиторий пакетов PhotonOS
-- [x] Упаковка DDE, фундамент: `gsettings-qt`, `dtkcommon`, `dtklog`, `dtkcore`, `dtkgui`, `dtkwidget` (шаблоны готовы, очередь за сборкой и обкаткой)
-- [ ] Упаковка оболочки DDE (`dde-session-shell`, `dde-desktop`, `dde-dock`, ...)
-- [ ] Переключение ISO на DDE
-- [ ] Фирменные обои, темы и оформление
+- [x] Рабочий стол: LXQt + оформление в духе Deepin (панель-док, picom, Papirus, Arc, обои)
+- [x] Заготовка упаковки DDE: шаблоны DTK и оболочки в `pkg/` (на паузе)
+- [ ] Фирменные приложения PhotonOS (центр управления, приветствие при входе)
+- [ ] Публичный репозиторий пакетов (xbps-rindex) — когда появится свой софт
 
 ## Благодарности
 
 - [Void Linux](https://voidlinux.org/) — идеальная база и `void-mklive`.
-- [Deepin Desktop Environment](https://www.deepin.org/) — целевой рабочий стол.
+- [Deepin](https://www.deepin.org/) — источник вдохновения для оформления:
+  LXQt в PhotonOS настроен под его фирменный стиль.
 - Обёртка `ppm` ни на что не претендует: под капотом честный XBPS.
 
 ## Лицензия

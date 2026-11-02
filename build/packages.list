@@ -11,11 +11,25 @@ git
 
 # сеть
 NetworkManager
+network-manager-applet
 
-# графика: Xorg + лёгкий Qt-десктоп (временный, до готовности DDE)
+# графика: Xorg + LXQt + стек оформления в духе Deepin
 xorg
 sddm
 lxqt
+pcmanfm-qt
+qterminal
+lximage-qt
+lxqt-archiver
+obconf-qt
+lxqt-powermanagement
+xdg-desktop-portal-lxqt
+
+# оформление: плоский светлый стиль, тени/полупрозрачность
+openbox
+picom
+papirus-icon-theme
+arc-theme
 
 # загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
 plymouth

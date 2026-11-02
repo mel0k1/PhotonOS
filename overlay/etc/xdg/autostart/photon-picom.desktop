@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Photon compositor (picom)
+Name[ru]=Композитор Photon (picom)
+Comment=Shadows, translucency and blur for the Deepin-style look
+Comment[ru]=Тени, полупрозрачность и блюр для оформления в духе Deepin
+TryExec=picom
+Exec=picom --config /etc/photon/picom.conf --daemon
+Terminal=false
+Categories=System;
