@@ -1,0 +1,68 @@
+name: pkg
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pkg/**'
+      - '.github/workflows/pkg.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pkg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trial-build:
+    name: Пробная сборка пакетов DDE
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    container:
+      # тот же образ void-mklive, что и для ISO: внутри готовый xbps и root
+      image: ghcr.io/void-linux/void-mklive:20250116R1
+      options: --privileged
+      volumes:
+        - /dev:/dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Зависимости контейнера
+        run: command -v git >/dev/null 2>&1 || xbps-install -Sy git
+
+      - name: Дерево void-packages
+        run: git clone --depth=1 https://github.com/void-linux/void-packages /vp
+
+      - name: Подготовка (шаблоны + shlibs)
+        run: ./pkg/build.sh /vp
+
+      - name: binary-bootstrap
+        run: (cd /vp && ./xbps-src binary-bootstrap)
+
+      # Порядок = топологический: фундамент DTK -> QPA/интеграция ->
+      # вспомогательные библиотеки -> компоненты оболочки.
+      # Остановка на первой ошибке, логи уходят в артефакты.
+      - name: Сборка цепочки DDE
+        run: |
+          set -e
+          cd /vp
+          for p in gsettings-qt dtkcommon dtklog dtkcore dtkgui dtkwidget \
+                   qt5platform-plugins qt5integration \
+                   lxqt-build-tools libqtxdg dbusmenu-qt5 \
+                   dde-qt-dbus-factory deepin-wayland-protocols dwayland \
+                   dde-session-shell dde-launcher dde-polkit-agent dde-dock; do
+            echo "::group::=== xbps-src pkg $p ==="
+            ./xbps-src pkg "$p"
+            echo "::endgroup::"
+          done
+
+      - name: Публикация артефактов
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotonOS-pkgs
+          path: |
+            /vp/hostdir/binpkgs/**/*.xbps
+            /vp/hostdir/builddir/**/*.log
+          if-no-files-found: warn
+          retention-days: 14
