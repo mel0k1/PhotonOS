@@ -55,3 +55,15 @@ diff -ruN a/src/keybinds/Key.cpp b/src/keybinds/Key.cpp
  }
  
  bool CKey::matches(const SResolvedKey& key) const {
+diff -ruN a/src/output/Monitor.cpp b/src/output/Monitor.cpp
+--- a/src/output/Monitor.cpp	2026-11-02 21:47:33.822750250 +0000
++++ b/src/output/Monitor.cpp	2026-11-02 22:35:39.501418122 +0000
+@@ -705,7 +705,7 @@
+         std::ranges::sort(sortedModes, sortFunc);
+         if (sortedModes.size() > 3)
+             sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+-        requestedModes.insert_range(requestedModes.end(), sortedModes | std::views::reverse);
++        requestedModes.insert(requestedModes.end(), sortedModes.rbegin(), sortedModes.rend());
+     };
+ 
+     // last fallback is always preferred mode
