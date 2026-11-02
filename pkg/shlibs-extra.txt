@@ -20,4 +20,5 @@ libhyprlang.so.2 hyprlang-0.6.8_1
 libaquamarine.so.15 aquamarine-0.16.0_1
 libhyprcursor.so.0 hyprcursor-0.1.13_1
 libhyprgraphics.so.5 hyprgraphics-0.6.0_1
-liblua5.5.so.0.0 lua5.5-5.5.1_1
+# SONAME у собранной библиотеки liblua5.5.so.0 (файл — liblua5.5.so.0.0)
+liblua5.5.so.0 lua5.5-5.5.1_1
