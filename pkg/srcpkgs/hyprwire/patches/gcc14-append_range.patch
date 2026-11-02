@@ -66,7 +66,7 @@ diff -ruN a/src/core/socket/SocketHelpers.cpp b/src/core/socket/SocketHelpers.cp
              return {.bad = true};
  
 -        message.data.append_range(std::span<uint8_t>(buffer, sizeWritten));
-+        message.data.insert(data.end(), std::span<uint8_t>(buffer, sizeWritten).begin(), std::span<uint8_t>(buffer, sizeWritten).end());
++        message.data.insert(message.data.end(), std::span<uint8_t>(buffer, sizeWritten).begin(), std::span<uint8_t>(buffer, sizeWritten).end());
  
          // check for control
          cmsghdr* recvdCmsg = CMSG_FIRSTHDR(&msg);
