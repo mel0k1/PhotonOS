@@ -32,6 +32,9 @@ xdg-desktop-portal-hyprland"
 
 log() { printf '\033[36m==> \033[1m%s\033[0m\n' "$1"; }
 
+# xbps-src в CI-контейнере работает под root только с этим флагом (см. xbps-src)
+export XBPS_ALLOW_CHROOT_BREAKOUT=1
+
 log "PhotonOS ISO | arch=$ARCH | repo=$REPO"
 
 # 1. void-mklive
@@ -53,7 +56,7 @@ cp -a "$ROOT/pkg/srcpkgs/photon-boot-splash/files/photon-boot" \
 
 # графический установщик (installer/, docs/INSTALLER.md)
 install -m 0755 "$ROOT/installer/photon-installer" "$STAGE/usr/bin/photon-installer"
-mkdir -p "$STAGE/usr/share/photon-installer"
+mkdir -p "$STAGE/usr/share/photon-installer" "$STAGE/usr/share/applications"
 cp -a "$ROOT/installer/photon_install" "$STAGE/usr/share/photon-installer/"
 rm -rf "$STAGE/usr/share/photon-installer/photon_install/__pycache__"
 install -m 0644 "$ROOT/installer/photon-installer.desktop" \

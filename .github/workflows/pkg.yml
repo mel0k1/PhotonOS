@@ -48,13 +48,18 @@ jobs:
         run: ./pkg/build.sh /vp
 
       - name: binary-bootstrap
+        # контейнер работает под root — xbps-src требует явного разрешения (CI)
         run: (cd /vp && ./xbps-src binary-bootstrap)
+        env:
+          XBPS_ALLOW_CHROOT_BREAKOUT: 1
 
       # Порядок = топологический. hyprland: данные -> базовые библиотеки ->
       # бэкенд -> сам композитор -> экран блокировки/простой/портал.
       # DDE: фундамент DTK -> QPA/интеграция -> библиотеки -> оболочка.
       # Остановка на первой ошибке, логи уходят в артефакты.
       - name: Сборка цепочки
+        env:
+          XBPS_ALLOW_CHROOT_BREAKOUT: 1
         run: |
           set -e
           cd /vp
