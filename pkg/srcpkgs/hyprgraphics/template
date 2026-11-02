@@ -11,7 +11,8 @@ build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config"
 makedepends="hyprutils libdrm-devel pixman-devel cairo-devel pango-devel
- libjpeg-turbo-devel libwebp-devel libpng-devel librsvg-devel file file-devel"
+ libjpeg-turbo-devel libwebp-devel libpng-devel librsvg-devel libglvnd-devel
+ file file-devel"
 short_desc="Hyprland graphics utilities library"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"
@@ -20,5 +21,5 @@ distfiles="https://github.com/hyprwm/hyprgraphics/archive/refs/tags/v${version}.
 checksum=27e9e19ff59ba75a2963d72c3dcb5c0840b266b90d7fca6d5df7cac105419b08
 
 post_install() {
-	vlicense LICENSE
+        vlicense LICENSE
 }
