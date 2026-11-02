@@ -10,3 +10,15 @@ diff -ruN a/src/config/shared/parserUtils/ParserUtils.cpp b/src/config/shared/pa
      if (!res)
          return std::unexpected(std::format("invalid hex \"{}\"", value));
      return *res;
+diff -ruN a/src/helpers/MiscFunctions.cpp b/src/helpers/MiscFunctions.cpp
+--- a/src/helpers/MiscFunctions.cpp	2026-11-02 21:47:33.818750230 +0000
++++ b/src/helpers/MiscFunctions.cpp	2026-11-02 21:57:59.022026458 +0000
+@@ -474,7 +474,7 @@
+     });
+ 
+     return [&](auto&&... prefixes) -> bool {
+-        return (... || std::ranges::starts_with(str_view, prefixes));
++        return (... || std::ranges::equal(prefixes, str_view | std::views::take(std::ranges::distance(prefixes))));
+     }("true"sv, "yes"sv, "on"sv);
+     // clang-format on
+ }
