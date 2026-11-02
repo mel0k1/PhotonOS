@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=PhotonOS MacShell
+Name[ru]=PhotonOS MacShell
+Comment=macOS Tahoe-style desktop: Hyprland + Quickshell MacShell
+Comment[ru]=Рабочий стол в стиле macOS Tahoe: Hyprland + Quickshell MacShell
+Exec=Hyprland
+Type=Application
+DesktopNames=Hyprland;MacShell
+Keywords=macshell;hyprland;photon

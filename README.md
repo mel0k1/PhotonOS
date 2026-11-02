@@ -77,6 +77,18 @@ DTK и оболочки в [`pkg/`](pkg/README.md)) отложена — сли�
 работы ради перегонки целого DE. Шаблоны сохранены (готовая база: `pkg/build.sh`
 + `xbps-src`), но ISO собирается на LXQt.
 
+## Вторая сессия: MacShell (macOS Tahoe-стиль)
+
+Помимо LXQt ISO несёт экспериментальную сессию **PhotonOS MacShell**:
+композитор **Hyprland** + оболочка **MacShell** на Quickshell — менюбар, Dock,
+Spotlight, центр управления и экран блокировки MacLock в стиле macOS Tahoe
+(проект [0-ss/MacShell](https://github.com/0-ss/MacShell), вендорен в
+`pkg/vendor/MacShell`). Сам Hyprland и его библиотеки в Void не пакуются —
+стек собирается нашими шаблонами (`pkg/srcpkgs/hypr*`) в локальный репозиторий
+на этапе сборки ISO. Выбор сессии — в SDDM; установщик предлагает MacShell
+на шаге «Окружение». Подробности и ограничения —
+[`docs/MACSHELL.md`](docs/MACSHELL.md).
+
 ## Скриншоты
 
 Превью интерфейса отрисованы по реальным конфигам PhotonOS
@@ -108,12 +120,12 @@ PhotonOS/
 │   ├── usr/share/backgrounds/    # обои photon-*.jpg + photon-deepin.png
 │   └── usr/lib/os-release  # брендинг системы
 ├── design/                 # авторские исходники: иконки и обои
-├── installer/              # графический установщик (M1: каркас, см. docs/INSTALLER.md)
+├── installer/              # графический установщик (PySide6, см. docs/INSTALLER.md)
 ├── logo/photon.txt         # ASCII-логотип
-├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md, INSTALLER.md
-├── pkg/                    # шаблоны пакетов DDE (на паузе, см. pkg/README.md)
+├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md, INSTALLER.md, MACSHELL.md
+├── pkg/                    # шаблоны xbps-src: стек Hyprland, DDE (пауза) + vendor/MacShell
 ├── scripts/                # утилиты (make_icons.py, make_wallpapers.py, ...)
-└── .github/workflows/      # CI: ISO на push, пакеты — вручную
+└── .github/workflows/      # CI: ISO на push, пакеты — вручную (цепочка hyprland/dde)
 ```
 
 ## ppm — пакетный менеджер
@@ -150,8 +162,10 @@ ASCII-сводка о системе: логотип PhotonOS + ОС, ядро, 
 
 ## Сборка ISO
 
-Нужен хост Void Linux (или контейнер `ghcr.io/void-linux/void-mklive`), ~10 ГБ
-диска. Подробности — [`docs/BUILDING.md`](docs/BUILDING.md).
+Нужен хост Void Linux (или контейнер `ghcr.io/void-linux/void-mklive`), ~12 ГБ
+диска. Сборка включает локальный репозиторий со стеком Hyprland — закладывайте
+лишние ~30 минут; отключается `PHOTON_HYPR=0`, MacShell — `PHOTON_MACSHELL=0`.
+Подробности — [`docs/BUILDING.md`](docs/BUILDING.md).
 
 ```sh
 ./build/build-iso.sh          # результат: dist/PhotonOS-live-x86_64-<дата>.iso
@@ -170,6 +184,7 @@ CI собирает ISO автоматически на каждый push в `ma
 - [x] Фирменные иконки и обои: тема `photon`, 4 обоев, ярлык «Корзина», смена обоев через настройки
 - [x] Заготовка упаковки DDE: шаблоны DTK и оболочки в `pkg/` (на паузе)
 - [ ] Графический установщик системы ([docs/INSTALLER.md](docs/INSTALLER.md)) — M2 готов: бэкенд sfdisk → xbps → GRUB → fstab, экран прогресса, dry-run
+- [x] Сессия MacShell (M3): стек Hyprland шаблонами `pkg/srcpkgs`, сессия в SDDM и skel, выбор в установщике ([docs/MACSHELL.md](docs/MACSHELL.md))
 - [ ] Фирменные приложения PhotonOS (центр управления, приветствие при входе)
 - [ ] Публичный репозиторий пакетов (xbps-rindex) — когда появится свой софт
 

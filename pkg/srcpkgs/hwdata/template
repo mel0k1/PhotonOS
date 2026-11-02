@@ -1,0 +1,22 @@
+# Template file for 'hwdata'
+# Данные идентификации оборудования (pci.ids, usb.ids, pnp.ids, oui, iab)
+# + pkg-config модуль hwdata.pc. Нужен aquamarine (HW-базе Hyprland):
+# pkg_get_variable(HWDATA_DIR hwdata pkgdatadir) -> data/hwdata.sh < pnp.ids.
+# В репозитории Void пакета нет — собираем сами (upstream: vcrhonek/hwdata).
+pkgname=hwdata
+version=0.412
+revision=1
+short_desc="Hardware identification and configuration data (PCI/USB/PNP IDs)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="GPL-2.0-or-later"
+homepage="https://github.com/vcrhonek/hwdata"
+distfiles="https://github.com/vcrhonek/hwdata/archive/refs/tags/v${version}.tar.gz"
+checksum=f0c64cd7e31d70a5fb3a52e53ab50a61e74c0421a6381eaa45114eec3bde5fe7
+
+do_configure() {
+	./configure --prefix=/usr
+}
+
+do_install() {
+	make install DESTDIR=${DESTDIR} libdir=/usr/lib datadir=/usr/share
+}

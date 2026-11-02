@@ -31,8 +31,8 @@ done
 find "$SRC"/srcpkgs -maxdepth 1 -type l -exec cp -P {} "$VP/srcpkgs/" \;
 
 # 2. Записи shlibs (маркер защищает от повторного добавления).
-if ! grep -q 'PhotonOS DDE' "$VP/common/shlibs" 2>/dev/null; then
-    printf '\n# PhotonOS DDE\n' >> "$VP/common/shlibs"
+if ! grep -q 'PhotonOS shlibs' "$VP/common/shlibs" 2>/dev/null; then
+    printf '\n# PhotonOS shlibs\n' >> "$VP/common/shlibs"
     cat "$SRC/shlibs-extra.txt" >> "$VP/common/shlibs"
 fi
 

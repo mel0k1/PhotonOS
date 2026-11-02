@@ -43,14 +43,24 @@ DE_PKGS = {
         "network-manager-applet",
     ],
     "none": [],
-    # MacShell: Hyprland/Quickshell — отдельная веха (docs/INSTALLER.md),
-    # пока ставится как «без окружения» + подсказка пользователю.
-    "macshell": [],
+    # MacShell (M3, docs/MACSHELL.md): Hyprland + Quickshell.
+    # hyprland/hyprlock/hypridle/xdg-desktop-portal-hyprland — наши пакеты
+    # (pkg/srcpkgs, попадают в ISO через локальный репозиторий);
+    # quickshell/awww/kitty/... — из репозитория Void.
+    "macshell": [
+        "hyprland", "hyprlock", "hypridle", "xdg-desktop-portal-hyprland",
+        "quickshell", "awww", "kitty", "cliphist", "grim", "slurp",
+        "wl-clipboard", "wf-recorder", "brightnessctl", "inotify-tools",
+        "pipewire", "wireplumber", "playerctl", "qt6ct", "font-inter",
+        "noto-fonts-emoji", "polkit-gnome", "xdg-desktop-portal",
+        "xdg-desktop-portal-gtk", "fastfetch", "noto-fonts-ttf",
+        "xdg-user-dirs",
+    ],
 }
 
 # runit-сервисы в runsvdir/default (сами директории /etc/sv приходят пакетами)
 SERVICES_BASE = ["dbus", "elogind", "NetworkManager", "chronyd"]
-SERVICES_DE = {"lxqt": ["sddm"], "none": [], "macshell": []}
+SERVICES_DE = {"lxqt": ["sddm"], "none": [], "macshell": ["sddm"]}
 
 USER_GROUPS = "wheel,audio,video,storage,input,cdrom"
 

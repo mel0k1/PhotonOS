@@ -1,0 +1,26 @@
+# Template file for 'hyprlock'
+# Экран блокировки Hyprland — под ним работает MacLock (Liquid Glass
+# lock screen из MacShell, PAM-модуль /etc/pam.d/hyprlock).
+# Зависимости: wayland-client wayland-protocols>=1.35 wayland-egl
+# hyprlang>=0.6 egl xkbcommon cairo pangocairo libdrm gbm
+# hyprutils>=0.11 sdbus-c++ PAM; hyprwayland-scanner >= 0.4.4.
+pkgname=hyprlock
+version=0.9.7
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config hyprwayland-scanner"
+makedepends="hyprlang>=0.6.8 hyprutils>=0.14.3 wayland-devel wayland-protocols
+ libxkbcommon-devel cairo-devel pango-devel libdrm-devel libglvnd-devel
+ libgbm-devel sdbus-c++-devel"
+depends="pam-base"
+short_desc="Hyprland screen locking utility (MacLock backend)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="BSD-3-Clause"
+homepage="https://github.com/hyprwm/hyprlock"
+distfiles="https://github.com/hyprwm/hyprlock/archive/refs/tags/v${version}.tar.gz"
+checksum=01145790570ffabd31e9b528c517bdccae76f36e72d733f00c2696d9c3bf2c88
+
+post_install() {
+	vlicense LICENSE
+}

@@ -17,7 +17,7 @@ jobs:
   iso:
     name: Сборка live-ISO
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     container:
       # тот же образ, которым собирает сам Void Linux
       image: ghcr.io/void-linux/void-mklive:20250116R1

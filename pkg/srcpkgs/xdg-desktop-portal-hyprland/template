@@ -1,0 +1,26 @@
+# Template file for 'xdg-desktop-portal-hyprland'
+# XDG-портал Hyprland: скринкаст (PipeWire), скриншоты, выбор обоев.
+# Зависимости: wayland-client wayland-protocols>=1.39 libpipewire-0.3>=1.1.82
+# libspa-0.2 libdrm uuid gbm hyprlang>=0.2 hyprutils>=0.2.6
+# hyprwayland-scanner>=0.4.2 sdbus-c++>=2.0 hyprland-protocols>=0.8.
+pkgname=xdg-desktop-portal-hyprland
+version=1.5.0
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config hyprwayland-scanner"
+makedepends="wayland-devel wayland-protocols pipewire-devel libdrm-devel
+ libgbm-devel hyprlang>=0.6.8 hyprutils>=0.14.3 sdbus-c++-devel
+ hyprland-protocols>=0.8.0
+ libuuid-devel glib-devel"
+depends="xdg-desktop-portal hyprland"
+short_desc="xdg-desktop-portal backend for Hyprland"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/hyprwm/xdg-desktop-portal-hyprland"
+distfiles="https://github.com/hyprwm/xdg-desktop-portal-hyprland/archive/refs/tags/v${version}.tar.gz"
+checksum=8f9eddad706b0bbca2dc24f9894e07969ec5aed163249d6eac3932cfaf38e6a9
+
+post_install() {
+	vlicense LICENSE
+}

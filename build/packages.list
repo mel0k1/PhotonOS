@@ -31,11 +31,42 @@ picom
 papirus-icon-theme
 arc-theme
 
+# сессия MacShell (macOS Tahoe-стиль, docs/MACSHELL.md):
+# hyprland/hyprlock/hypridle/portal — НАШИ пакеты из pkg/srcpkgs,
+# попадают в ISO через локальный репозиторий (build/build-iso.sh);
+# остальное — из репозитория Void.
+hyprland
+hyprlock
+hypridle
+xdg-desktop-portal-hyprland
+quickshell
+awww
+kitty
+cliphist
+grim
+slurp
+wl-clipboard
+wf-recorder
+brightnessctl
+inotify-tools
+pipewire
+wireplumber
+playerctl
+qt6ct
+font-inter
+noto-fonts-emoji
+polkit-gnome
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+fastfetch
+
 # загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
 plymouth
 
-# графический установщик (этап 2, см. docs/INSTALLER.md):
-# python3-pyside6 python3-pyside6-gui python3-pyside6-widgets
+# графический установщик (PySide6, docs/INSTALLER.md)
+python3-pyside6
+python3-pyside6-gui
+python3-pyside6-widgets
 
 # шрифты и интеграция
 noto-fonts-ttf

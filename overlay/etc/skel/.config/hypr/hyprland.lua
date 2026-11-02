@@ -1,0 +1,13 @@
+-- PhotonOS: базовый конфиг Hyprland (сессия «PhotonOS MacShell»).
+--
+-- Hyprland 0.55+ читает hyprland.lua и игнорирует hyprland.conf.
+-- Здесь только комментарии: композитор стартует с безопасными значениями
+-- по умолчанию, а всё нужное MacShell'у добавляет ~/.config/hypr/macshell.lua —
+-- его пишет install.sh и подключает строкой require("macshell").
+--
+-- Известный API (из macshell.lua / README MacShell):
+--   hl.on("hyprland.start", function() ... end)
+--   hl.bind("SUPER + Space", hl.dsp.exec_cmd("..."))
+--   hl.layer_rule({ name = "...", match = { namespace = "..." }, blur = true })
+--
+-- Пользователь может дописать свои настройки ниже.

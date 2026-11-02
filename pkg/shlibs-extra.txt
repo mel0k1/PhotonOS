@@ -13,3 +13,10 @@ libdtklog.so.0 dtklog-0.0.4_1
 libdtkwidget.so.5 dtkwidget-5.7.30_1
 libgsettings-qt.so.1 gsettings-qt-0.2_1
 liblightdm-qt5-3.so.0 liblightdm-qt5-1.32.0_1
+
+# SONAME-записи стека Hyprland (MacShell) — в upstream Void этих пакетов нет.
+libhyprutils.so.13 hyprutils-0.14.3_1
+libhyprlang.so.2 hyprlang-0.6.8_1
+libaquamarine.so.15 aquamarine-0.16.0_1
+libhyprcursor.so.0 hyprcursor-0.1.13_1
+libhyprgraphics.so.5 hyprgraphics-0.6.0_1
