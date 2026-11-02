@@ -29,7 +29,7 @@ makedepends="aquamarine hyprlang hyprcursor
  libinput-devel libdrm-devel libglvnd-devel libgbm-devel eudev-libudev-devel
  pixman-devel cairo-devel pango-devel libuuid-devel wayland-devel
  wayland-protocols xcb-util-wm-devel xcb-util-errors-devel glib-devel
- libxcb-devel libXcursor-devel lua5.5
+ libxcb-devel libXcursor-devel lua5.5 hyprwire readline-devel libffi-devel
  libpng-devel libjpeg-turbo-devel libwebp-devel librsvg-devel file-devel
  python3"
 depends="mesa-dri mesa-vulkan-lavapipe xorg-server-xwayland lua5.5"

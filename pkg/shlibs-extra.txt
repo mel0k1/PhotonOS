@@ -22,3 +22,4 @@ libhyprcursor.so.0 hyprcursor-0.1.13_1
 libhyprgraphics.so.5 hyprgraphics-0.6.0_1
 # SONAME у собранной библиотеки liblua5.5.so.0 (файл — liblua5.5.so.0.0)
 liblua5.5.so.0 lua5.5-5.5.1_1
+libhyprwire.so.3 hyprwire-0.3.1_1

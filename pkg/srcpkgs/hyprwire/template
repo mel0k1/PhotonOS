@@ -1,0 +1,23 @@
+# Template file for 'hyprwire'
+# Новый IPC-протокол экосистемы Hyprland: libhyprwire + hyprwire-scanner
+# (генератор кода протоколов). Нужен Hyprland 0.57 — через него собирается
+# hyprctl (pkg_check_modules REQUIRED: hyprwire, readline).
+# В репозитории Void пакета нет. SOVERSION 3 (libhyprwire.so.3) —
+# см. pkg/shlibs-extra.txt.
+pkgname=hyprwire
+version=0.3.1
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
+hostmakedepends="pkg-config"
+makedepends="hyprutils libffi-devel"
+short_desc="IPC wire protocol library and scanner for the Hyprland ecosystem"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="BSD-3-Clause"
+homepage="https://github.com/hyprwm/hyprwire"
+distfiles="https://github.com/hyprwm/Hyprwire/archive/refs/tags/v${version}.tar.gz"
+checksum=92a673d40ae6a7d66fbcd0a34ec071e026e17eaeeb0040c3375e4b2a80dba737
+
+post_install() {
+	vlicense LICENSE
+}
