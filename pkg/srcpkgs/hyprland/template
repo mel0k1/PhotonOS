@@ -31,7 +31,7 @@ makedepends="aquamarine hyprlang hyprcursor
  wayland-protocols xcb-util-wm-devel xcb-util-errors-devel glib-devel
  libxcb-devel libXcursor-devel lua5.5
  python3"
-depends="mesa-dri xorg-server-xwayland lua5.5"
+depends="mesa-dri mesa-vulkan-lavapipe xorg-server-xwayland lua5.5"
 short_desc="Dynamic tiling Wayland compositor with Lua config (MacShell base)"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"

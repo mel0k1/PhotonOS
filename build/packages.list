@@ -40,6 +40,8 @@ hyprlock
 hypridle
 xdg-desktop-portal-hyprland
 quickshell
+# программный Vulkan для Hyprland в VM (на живом железе — драйверы GPU)
+mesa-vulkan-lavapipe
 awww
 kitty
 cliphist
