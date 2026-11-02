@@ -97,6 +97,7 @@ PhotonOS/
 │   ├── usr/share/backgrounds/    # обои photon-*.jpg + photon-deepin.png
 │   └── usr/lib/os-release  # брендинг системы
 ├── design/                 # авторские исходники: иконки и обои
+├── installer/              # графический установщик (M1: каркас, см. docs/INSTALLER.md)
 ├── logo/photon.txt         # ASCII-логотип
 ├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md, INSTALLER.md
 ├── pkg/                    # шаблоны пакетов DDE (на паузе, см. pkg/README.md)
@@ -157,7 +158,7 @@ CI собирает ISO автоматически на каждый push в `ma
 - [x] Рабочий стол: LXQt + оформление в духе Deepin (панель-док, picom, Papirus, Arc, обои)
 - [x] Фирменные иконки и обои: тема `photon`, 4 обоев, ярлык «Корзина», смена обоев через настройки
 - [x] Заготовка упаковки DDE: шаблоны DTK и оболочки в `pkg/` (на паузе)
-- [ ] Графический установщик системы ([docs/INSTALLER.md](docs/INSTALLER.md))
+- [ ] Графический установщик системы ([docs/INSTALLER.md](docs/INSTALLER.md)) — M1 готов: каркас мастера, шаги, опрос дисков, выбор окружения
 - [ ] Фирменные приложения PhotonOS (центр управления, приветствие при входе)
 - [ ] Публичный репозиторий пакетов (xbps-rindex) — когда появится свой софт
 

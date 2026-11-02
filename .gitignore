@@ -5,3 +5,8 @@ void-mklive/
 xbps-cachedir-*/
 *.iso
 *.sha256
+__pycache__/
+*.pyc
+dist/
+build/.stage-overlay/
+void-mklive/
