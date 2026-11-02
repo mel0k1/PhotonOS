@@ -34,6 +34,9 @@ arc-theme
 # загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
 plymouth
 
+# графический установщик (этап 2, см. docs/INSTALLER.md):
+# python3-pyside6 python3-pyside6-gui python3-pyside6-widgets
+
 # шрифты и интеграция
 noto-fonts-ttf
 xdg-user-dirs
