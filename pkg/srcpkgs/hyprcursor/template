@@ -9,7 +9,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config"
-makedepends="hyprlang>=0.6.8 cairo-devel librsvg-devel libzip-devel tomlplusplus-devel"
+makedepends="hyprlang cairo-devel librsvg-devel libzip-devel tomlplusplus-devel"
 short_desc="Hyprland cursor library"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"

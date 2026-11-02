@@ -2,7 +2,7 @@
 # Композитор Wayland с Lua-конфигом (0.55+) — база MacShell
 # (менюбар/Dock/Spotlight в стиле macOS Tahoe, Quickshell).
 # Hyprland 0.57 требует: aquamarine>=0.15 hyprlang>=0.6.7 hyprcursor>=0.1.7
-# hyprutils>=0.14.3 hyprgraphics>=0.5.1 udis86>=1.7.2 glslang (config),
+# hyprutils hyprgraphics>=0.5.1 udis86>=1.7.2 glslang (config),
 # glaze (иначе FetchContent из сети — в xbps-src запрещён), hyprland-protocols
 # >=0.8, sdbus-c++>=2.0, xkbcommon, uuid, wayland-server, cairo, pango,
 # pangocairo, pixman, xcursor, libdrm, libinput>=1.29, libeis-1.0, gbm,
@@ -14,9 +14,9 @@ version=0.57.0
 revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib -DLEGACY_RENDERER:BOOL=OFF"
-hostmakedepends="pkg-config hyprwayland-scanner cmake>=3.30"
-makedepends="aquamarine>=0.16.0 hyprlang>=0.6.8 hyprcursor>=0.1.13
- hyprgraphics>=0.6.0 hyprutils>=0.14.3 hyprland-protocols>=0.8.0
+hostmakedepends="pkg-config hyprwayland-scanner cmake"
+makedepends="aquamarine hyprlang hyprcursor
+ hyprgraphics hyprutils hyprland-protocols
  glslang udis86-devel sdbus-c++-devel re2-devel
  muparser-devel lcms2-devel libcanberra-devel libei-devel libxkbcommon-devel
  libinput-devel libdrm-devel libglvnd-devel libgbm-devel eudev-libudev-devel

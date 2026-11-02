@@ -1,7 +1,7 @@
 # Template file for 'hyprland-protocols'
 # Протоколы Wayland экосистемы Hyprland (pkg-config hyprland-protocols).
 # Требуют hypridle >= 0.6.0, xdg-desktop-portal-hyprland >= 0.8.0 и сам
-# Hyprland (hyprland_protocols_dep REQUIRED hyprland-protocols>=0.8.0).
+# Hyprland (hyprland_protocols_dep REQUIRED hyprland-protocols).
 # В репозитории Void пакета нет.
 pkgname=hyprland-protocols
 version=0.8.0

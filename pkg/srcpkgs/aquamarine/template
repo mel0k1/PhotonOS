@@ -10,7 +10,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config hyprwayland-scanner"
-makedepends="hyprutils>=0.14.3 libseat-devel libinput-devel wayland-devel
+makedepends="hyprutils libseat-devel libinput-devel wayland-devel
  wayland-protocols libdrm-devel libdisplay-info-devel libglvnd-devel
  libgbm-devel eudev-libudev-devel pixman-devel hwdata"
 short_desc="Hyprland display server backend library"

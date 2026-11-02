@@ -10,7 +10,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config hyprwayland-scanner"
-makedepends="hyprlang>=0.6.8 hyprutils>=0.14.3 wayland-devel wayland-protocols
+makedepends="hyprlang hyprutils wayland-devel wayland-protocols
  libxkbcommon-devel cairo-devel pango-devel libdrm-devel libglvnd-devel
  libgbm-devel sdbus-c++-devel"
 depends="pam-base"

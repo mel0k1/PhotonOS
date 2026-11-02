@@ -9,8 +9,8 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config hyprwayland-scanner"
-makedepends="hyprlang>=0.6.8 hyprutils>=0.14.3 sdbus-c++-devel
- hyprland-protocols>=0.8.0
+makedepends="hyprlang hyprutils sdbus-c++-devel
+ hyprland-protocols
  wayland-devel wayland-protocols"
 short_desc="Hyprland idle daemon"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"

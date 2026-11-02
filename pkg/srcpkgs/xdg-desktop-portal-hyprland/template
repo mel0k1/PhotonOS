@@ -10,8 +10,8 @@ build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config hyprwayland-scanner"
 makedepends="wayland-devel wayland-protocols pipewire-devel libdrm-devel
- libgbm-devel hyprlang>=0.6.8 hyprutils>=0.14.3 sdbus-c++-devel
- hyprland-protocols>=0.8.0
+ libgbm-devel hyprlang hyprutils sdbus-c++-devel
+ hyprland-protocols
  libuuid-devel glib-devel"
 depends="xdg-desktop-portal hyprland"
 short_desc="xdg-desktop-portal backend for Hyprland"

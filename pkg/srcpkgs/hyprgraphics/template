@@ -10,7 +10,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config"
-makedepends="hyprutils>=0.14.3 libdrm-devel pixman-devel cairo-devel pango-devel
+makedepends="hyprutils libdrm-devel pixman-devel cairo-devel pango-devel
  libjpeg-turbo-devel libwebp-devel libpng-devel librsvg-devel file file-devel"
 short_desc="Hyprland graphics utilities library"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"

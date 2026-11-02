@@ -8,7 +8,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config"
-makedepends="hyprutils>=0.14.3"
+makedepends="hyprutils"
 short_desc="Hyprland configuration language parser library"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="LGPL-3.0-or-later"
