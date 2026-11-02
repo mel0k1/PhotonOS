@@ -10,7 +10,7 @@ revision=1
 build_style=cmake
 configure_args="-DCMAKE_INSTALL_LIBDIR=lib"
 hostmakedepends="pkg-config"
-makedepends="hyprutils libffi-devel"
+makedepends="hyprutils libffi-devel pugixml-devel"
 short_desc="IPC wire protocol library and scanner for the Hyprland ecosystem"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"
