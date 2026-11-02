@@ -1,0 +1,39 @@
+# Template file for 'lua5.5'
+# Lua 5.5 нужен Hyprland 0.57 (pkg_search_module LUA REQUIRED: lua5.5,
+# диапазон >=5.5 <5.6 — Lua-конфигурация композитора, hyprland.lua).
+# В репозитории Void есть только 5.3/5.4 — пакуем свой: общая библиотека
+# с soname liblua5.5.so.0 + pkg-config lua5.5.pc (его и ищет Hyprland).
+pkgname=lua5.5
+version=5.5.1
+revision=1
+short_desc="Powerful, lightweight programming language (version 5.5)"
+maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
+license="MIT"
+homepage="https://www.lua.org/"
+distfiles="https://www.lua.org/ftp/lua-${version}.tar.gz"
+checksum=1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce
+
+do_build() {
+	# статика и утилиты: штатная цель linux, всё с -fPIC, чтобы объекты
+	# годились и для общей библиотеки
+	make linux CC="$CC" MYCFLAGS="-fPIC -DLUA_USE_LINUX" AR="${AR} rc" \
+		${makejobs}
+	# общая библиотека: все объекты, кроме интерпретаторов lua/luac
+	local objs="" f
+	for f in src/*.o; do
+		case "$f" in src/lua.o|src/luac.o) ;; *) objs="$objs $f" ;; esac
+	done
+	$CC -shared -Wl,-soname,liblua5.5.so.0 -o liblua5.5.so.0.0 $objs -lm
+}
+
+do_install() {
+	vbin src/lua lua5.5
+	vbin src/luac luac5.5
+	vinstall liblua5.5.so.0.0 755 usr/lib
+	ln -sf liblua5.5.so.0.0 "${DESTDIR}/usr/lib/liblua5.5.so.0"
+	ln -sf liblua5.5.so.0.0 "${DESTDIR}/usr/lib/liblua5.5.so"
+	vmkdir usr/include/lua5.5
+	vcopy "src/*.h" usr/include/lua5.5
+	vinstall "${FILESDIR}/lua5.5.pc" 644 usr/lib/pkgconfig
+	vlicense LICENSE
+}

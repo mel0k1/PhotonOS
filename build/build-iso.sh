@@ -26,7 +26,7 @@ HOSTREPO="$ROOT/build/hostrepo"
 MACSHELL="${PHOTON_MACSHELL:-1}"
 
 # Порядок сборки стека Hyprland (топологический; шаблоны в pkg/srcpkgs).
-HYPR_CHAIN="hwdata hyprutils hyprlang glaze hyprland-protocols \
+HYPR_CHAIN="lua5.5 hwdata hyprutils hyprlang glaze hyprland-protocols \
 aquamarine hyprcursor hyprgraphics hyprland hyprlock hypridle \
 xdg-desktop-portal-hyprland"
 

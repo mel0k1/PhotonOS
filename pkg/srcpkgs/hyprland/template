@@ -2,28 +2,36 @@
 # Композитор Wayland с Lua-конфигом (0.55+) — база MacShell
 # (менюбар/Dock/Spotlight в стиле macOS Tahoe, Quickshell).
 # Hyprland 0.57 требует: aquamarine>=0.15 hyprlang>=0.6.7 hyprcursor>=0.1.7
-# hyprutils hyprgraphics>=0.5.1 udis86>=1.7.2 glslang (config),
-# glaze (иначе FetchContent из сети — в xbps-src запрещён), hyprland-protocols
-# >=0.8, sdbus-c++>=2.0, xkbcommon, uuid, wayland-server, cairo, pango,
-# pangocairo, pixman, xcursor, libdrm, libinput>=1.29, libeis-1.0, gbm,
-# gio-2.0, re2, muparser, lcms2, libcanberra. XWayland-ветка: xcb, xcb-render,
-# xcb-xfixes, xcb-icccm, xcb-composite, xcb-res, xcb-errors.
+# hyprutils hyprgraphics>=0.5.1 udis86>=1.7.2 glslang (CONFIG-пакет,
+# нужен glslang-devel), glaze (иначе FetchContent из сети — в xbps-src
+# запрещён), hyprland-protocols >=0.8, sdbus-c++>=2.0, xkbcommon, uuid,
+# wayland-server, cairo, pango, pangocairo, pixman, xcursor (libXcursor-devel),
+# libdrm, libinput>=1.29, libeis-1.0, gbm, gio-2.0, re2, muparser, lcms2,
+# libcanberra и Lua 5.5 (pkg_search_module LUA REQUIRED; в Void нет —
+# pkg/srcpkgs/lua5.5). XWayland-ветка: xcb, xcb-render, xcb-xfixes,
+# xcb-icccm, xcb-composite, xcb-res, xcb-errors (libxcb-devel).
+#
+# CMAKE_CXX_STANDARD 26 (CMakeLists) — gcc 14 из репозитория не гарантирует
+# полную поддержку, собираем clang'ом 21 (+lld). NO_SYSTEMD=ON: под runit
+# systemd-юниты не нужны, сессии — через elogind.
 # cmake >= 3.30. mesa-dri — runtime (llvmpipe для VM / Mesa для GPU).
 pkgname=hyprland
 version=0.57.0
 revision=1
 build_style=cmake
-configure_args="-DCMAKE_INSTALL_LIBDIR=lib -DLEGACY_RENDERER:BOOL=OFF"
-hostmakedepends="pkg-config hyprwayland-scanner cmake"
+configure_args="-DCMAKE_INSTALL_LIBDIR=lib -DNO_SYSTEMD=ON
+ -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+hostmakedepends="pkg-config hyprwayland-scanner cmake clang lld"
 makedepends="aquamarine hyprlang hyprcursor
  hyprgraphics hyprutils hyprland-protocols
- glslang udis86-devel sdbus-c++-devel re2-devel
+ glslang-devel udis86-devel sdbus-c++-devel re2-devel
  muparser-devel lcms2-devel libcanberra-devel libei-devel libxkbcommon-devel
  libinput-devel libdrm-devel libglvnd-devel libgbm-devel eudev-libudev-devel
  pixman-devel cairo-devel pango-devel libuuid-devel wayland-devel
  wayland-protocols xcb-util-wm-devel xcb-util-errors-devel glib-devel
+ libxcb-devel libXcursor-devel lua5.5
  python3"
-depends="mesa-dri xorg-server-xwayland"
+depends="mesa-dri xorg-server-xwayland lua5.5"
 short_desc="Dynamic tiling Wayland compositor with Lua config (MacShell base)"
 maintainer="mel0k1 <218306052+mel0k1@users.noreply.github.com>"
 license="BSD-3-Clause"
@@ -32,5 +40,5 @@ distfiles="https://github.com/hyprwm/hyprland/archive/refs/tags/v${version}.tar.
 checksum=0c26cce513dbfe73f9fdbc23b90417bf68a743c290a10c4667f32470482464cc
 
 post_install() {
-	vlicense LICENSE
+        vlicense LICENSE
 }

@@ -81,7 +81,7 @@ jobs:
               echo "::endgroup::"
             done
           else
-            for p in hwdata hyprutils hyprlang glaze hyprland-protocols \
+            for p in lua5.5 hwdata hyprutils hyprlang glaze hyprland-protocols \
                      aquamarine hyprcursor hyprgraphics \
                      hyprland hyprlock hypridle xdg-desktop-portal-hyprland; do
               echo "::group::=== xbps-src pkg $p ==="
