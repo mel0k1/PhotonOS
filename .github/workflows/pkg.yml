@@ -1,11 +1,8 @@
 name: pkg
 
+# Запуск только вручную: шаблоны DDE на паузе, ISO собирается на LXQt.
+# Ветка: Action -> "Пробная сборка пакетов DDE" -> Run workflow.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'pkg/**'
-      - '.github/workflows/pkg.yml'
   workflow_dispatch:
 
 concurrency:
