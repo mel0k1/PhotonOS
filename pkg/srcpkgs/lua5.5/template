@@ -34,6 +34,8 @@ do_install() {
         ln -sf liblua5.5.so.0.0 "${DESTDIR}/usr/lib/liblua5.5.so"
         vmkdir usr/include/lua5.5
         vcopy "src/*.h" usr/include/lua5.5
+        # C++-обёртка (её требует Hyprland: #include <lua.hpp>)
+        vinstall src/lua.hpp 644 usr/include/lua5.5
         vinstall "${FILESDIR}/lua5.5.pc" 644 usr/lib/pkgconfig
         # в тарболе Lua нет файла LICENSE — канонический текст MIT в files/
         vlicense "${FILESDIR}/LICENSE"
