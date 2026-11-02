@@ -23,7 +23,7 @@ configure_args="-DCMAKE_INSTALL_LIBDIR=lib -DNO_SYSTEMD=ON
  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 hostmakedepends="pkg-config hyprwayland-scanner cmake clang lld"
 makedepends="aquamarine hyprlang hyprcursor
- hyprgraphics hyprutils hyprland-protocols
+ hyprgraphics hyprutils hyprland-protocols glaze
  glslang-devel SPIRV-Tools-devel udis86-devel sdbus-c++-devel re2-devel
  muparser-devel lcms2-devel libcanberra-devel libei-devel libxkbcommon-devel
  libinput-devel libdrm-devel libglvnd-devel libgbm-devel eudev-libudev-devel
