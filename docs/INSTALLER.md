@@ -1,8 +1,22 @@
 # Графический установщик PhotonOS
 
-Статус: **M1 готов** (каркас мастера, опрос дисков), M2 — бэкенд установки.
+Статус: **M2 готов** — реальный бэкенд (sfdisk → xbps → GRUB → fstab) +
+экран прогресса; проверен сухим прогоном (dry-run) и юнит-тестами.
 Заменяет `void-installer` в live-сессии: тот работает через `dialog` в
 терминале и не умеет branding.
+
+## Почему Python
+
+- **PySide6 уже в репозиториях Void** (`python3-pyside6`) — не тащим
+  сторонний стек, а Qt6 и так в ISO ради LXQt;
+- бэкенд — «склейка» системных команд (`sfdisk`, `xbps-install`, `grub`):
+  Python выигрывает по скорости разработки и читаемости, производительность
+  не важна (GUI просто ждёт команды);
+- логика без Qt (опрос дисков, план разметки, валидации) покрыта юнит-тестами
+  без запуска GUI;
+- шаги легко менять/добавлять (окружения, MacShell-ветка);
+- если когда-нибудь станет жалко ~40 МБ ОЗУ на рантайм — перенос на C++/Qt
+  механический, архитектура та же.
 
 ## Почему свой, а не Calamares
 
@@ -36,8 +50,43 @@
    github.com/0-ss/MacShell — экспериментально, интеграция отдельной
    вехой), **без окружения** (минимум), XFCE/KDE/GNOME («в планах»).
 6. **Сводка** — всё выбиранное на одном экране, кнопка «Установить».
-7. **Прогресс** (M2) — лог по шагам; отмена невозможна после разметки.
-8. **Готово** (M2) — «Перезагрузить» / «Продолжить знакомство».
+7. **Установка** (M2) — 13 шагов бэкенда с живым журналом; пароли в журнал
+   не попадают; после ошибки доступен «Назад».
+8. **Готово** — «Перезагрузить» в установленную систему.
+
+### Что делает бэкенд (M2)
+
+| Шаг | Содержимое |
+| --- | --- |
+| Разметка | `sfdisk`: GPT — ESP 512 МиБ (type U), swap 4 ГиБ (опция), корень |
+| ФС | `wipefs`, `mkfs.vfat` ESP, `mkswap`+`swapon`, `mkfs.ext4 -L photon` |
+| Монтирование | корень в `/target`, ESP в `/target/boot/efi` |
+| Пакеты | `xbps-install -r /target`: base + linux-lts + grub-x86_64-efi + NetworkManager + набор окружения (LXQt/без DE) |
+| fstab | по `blkid` UUID: `/`, `/boot/efi`, swap, `tmpfs /tmp` |
+| chroot | `/proc`, `/dev`, `/sys` — для dracut и grub |
+| Настройка | hostname, hosts, локали (ru/en), часовой пояс, `glibc-locales` |
+| Пользователи | `useradd -m` (wheel,audio,video,storage,input,cdrom), `chpasswd` (stdin скрыт) |
+| Сервисы | dbus, elogind, NetworkManager, chronyd (+sddm для LXQt) в runsvdir/default |
+| Брендинг | os-release, /etc/skel-дефолты, /etc/photon — из live-сессии |
+| Загрузчик | `grub-install --target=x86_64-efi --bootloader-id=PhotonOS`, `grub-mkconfig` |
+| Initramfs | `xbps-reconfigure -fa linux-lts` (dracut) |
+
+### Проверка в QEMU (UEFI)
+
+```sh
+# 1) сухой прогон без диска — печать всех команд в журнал
+./installer/photon-installer --dev --fake-disks --dry-run
+
+# 2) полная проверка в QEMU: ISO из CI + целевой диск
+qemu-img create -f qcow2 target.qcow2 16G
+qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/OVMF.fd \
+    -drive file=PhotonOS-live-x86_64-YYYYMMDD.iso,media=cdrom \
+    -drive file=target.qcow2,if=virtio
+# в live-сессии: ./installer/photon-installer (pkexec) → пройти мастер
+
+# 3) юнит-тесты логики без Qt
+python3 scripts/installer_tests.py
+```
 
 ## Каркас уже можно посмотреть
 
@@ -91,8 +140,11 @@ installer/
 - [x] **M1** — каркас мастера, все 6 шагов, опрос дисков через `lsblk -Jb`,
       выбор окружения (LXQt/MacShell/без DE/другие), сводка; ru/en с живой
       сменой языка.
-- **M2** — авто-разметка и установка базы в QEMU (UEFI), fstab, загрузчик.
-- **M3** — локали/пользователи/сервисы, экран прогресса с логом.
+- [x] **M2** — бэкенд установки (sfdisk → xbps-install → GRUB → fstab),
+      экран прогресса с журналом, dry-run, наборы пакетов по окружениям,
+      брендинг и skel-дефолты переносятся в установленную систему.
+- **M3** — MacShell-ветка (Hyprland/Quickshell: посмотреть что да как,
+  при необходимости шаблоны пакетов), приветствие при первом входе.
 - **M4** — ручная разметка, обработка ошибок, тесты на пустых дисках.
 - **M5** — пакет в репозиторий ISO (`packages.list`), вычистка `void-installer`
   из приветствия live-сессии.

@@ -62,6 +62,88 @@ check("все DE имеют бейджи", all("badge" in o and "desc" in o for 
 check("MacShell в списке", any(o["id"] == "macshell" for o in DE_OPTIONS))
 check("LXQt по умолчанию", InstallSettings().de == "lxqt")
 
+# ── M2: бэкенд установки (dry-run) ──────────────────────────────────
+from photon_install.backend import (BASE_PKGS, DE_PKGS, Installer,  # noqa: E402
+                                    part_path)
+
+check("суффикс sda", part_path("sda", 3) == "/dev/sda3")
+check("суффикс nvme", part_path("nvme0n1", 1) == "/dev/nvme0n1p1")
+check("суффикс mmcblk", part_path("mmcblk0", 2) == "/dev/mmcblk0p2")
+
+def build_settings(de, swap):
+    s = InstallSettings(lang="ru")
+    s.disks = disks
+    s.disk = sda.path
+    s.disk_size = sda.size_h
+    s.swap = swap
+    s.username, s.fullname = "anya", "Аня Волкова"
+    s.password = "hunter2"
+    s.hostname = "photon-pc"
+    s.tz = "Europe/Moscow"
+    s.de = de
+    return s
+
+def dry_run(s):
+    lines = []
+    inst = Installer(s, dry_run=True)
+    inst.on_log = lines.append
+    inst.run()
+    return lines, inst
+
+lines, inst = dry_run(build_settings("lxqt", True))
+cmds = [l for l in lines if l.startswith(("[",) ) and "$ " in l]
+plain = "\n".join(lines)
+text_cmds = [l.split("$ ", 1)[1] for l in lines if "$ " in l]
+
+check("sfdisk вызван на /dev/sda", any(c.startswith("sfdisk -f /dev/sda") for c in text_cmds))
+check("sfdisk: gpt + ESP + swap + linux",
+      all(x in plain for x in ("label: gpt", "type=U", "type=S", "type=L")))
+check("mkfs.vfat на sda1", any(c.startswith("mkfs.vfat") and c.endswith("/dev/sda1")
+                               for c in text_cmds))
+check("swap на sda2", any(c.startswith("mkswap") and c.endswith("/dev/sda2")
+                          for c in text_cmds))
+check("корень на sda3", any(c.startswith("mkfs.ext4") and c.endswith("/dev/sda3")
+                            for c in text_cmds))
+check("xbps-install с набором LXQt",
+      any(c.startswith("xbps-install -r /target -Sy") and "lxqt" in c and "sddm" in c
+          for c in text_cmds))
+check("grub-install UEFI", any("grub-install --target=x86_64-efi" in c for c in text_cmds))
+check("grub-mkconfig", any("grub-mkconfig -o /boot/grub/grub.cfg" in c for c in text_cmds))
+check("xbps-reconfigure linux-lts", any("xbps-reconfigure -fa linux-lts" in c for c in text_cmds))
+check("umount -R /target", any(c == "umount -R /target" for c in text_cmds))
+check("пользователь создан в chroot",
+      any("useradd -m -s /bin/bash -G wheel,audio,video,storage,input,cdrom anya" in c
+          for c in text_cmds))
+check("пароли не попадают в журнал", "hunter2" not in plain)
+check("stdin с паролями скрыт", any("пароли скрыты" in l for l in lines))
+
+lines2, _ = dry_run(build_settings("none", False))
+plain2 = "\n".join(lines2)
+text2 = [l.split("$ ", 1)[1] for l in lines2 if "$ " in l]
+check("без swap: корень сразу sda2", any(c.startswith("mkfs.ext4") and c.endswith("/dev/sda2")
+                                         for c in text2))
+check("без swap: нет mkswap", "mkswap" not in plain2)
+check("без DE: нет sddm в пакетах",
+      any(c.startswith("xbps-install") and "sddm" not in c and " lxqt" not in c
+          for c in text2))
+check("без DE: нет sddm-сервиса",
+      any(c.startswith("ln -sf /etc/sv/") and c.endswith("/default/sddm")
+          for c in text2) is False)
+
+nvme_s = build_settings("lxqt", False)
+nvme_s.disk = nvme.path
+nvme_s.disks = disks
+lines3, _ = dry_run(nvme_s)
+text3 = [l.split("$ ", 1)[1] for l in lines3 if "$ " in l]
+check("nvme: корень p2", any(c.startswith("mkfs.ext4") and c.endswith("/dev/nvme0n1p2")
+                             for c in text3))
+check("nvme: ESP p1", any(c.startswith("mkfs.vfat") and c.endswith("/dev/nvme0n1p1")
+                          for c in text3))
+check("macshell пока ставится как база (M3)",
+      any(c.startswith("xbps-install") and "hyprland" not in c
+          for c in [l.split("$ ", 1)[1] for l in
+                    (lambda L: L)([x for x in lines2]) if "$ " in l]))
+
 print()
 print("ВСЕ ОК" if not fails else f"ПРОВАЛЕНО: {fails}")
 sys.exit(1 if fails else 0)

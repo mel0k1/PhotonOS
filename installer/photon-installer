@@ -19,6 +19,8 @@ def main() -> int:
                     help="встроенный пример дисков вместо lsblk (разработка)")
     ap.add_argument("--dev", action="store_true",
                     help="режим разработки: без предупреждения о root")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="не выполнять команды, только печатать их в журнал")
     args = ap.parse_args()
 
     lang = args.lang or ("en" if (os.environ.get("LANG") or "").startswith("en") else "ru")
@@ -27,7 +29,8 @@ def main() -> int:
     app.setStyleSheet(style.QSS)
 
     warn_root = not args.dev and os.geteuid() != 0
-    win = MainWindow(lang=lang, fake_disks=args.fake_disks, warn_root=warn_root)
+    win = MainWindow(lang=lang, fake_disks=args.fake_disks,
+                     warn_root=warn_root, dry_run=args.dry_run)
     win.show()
     return app.exec()
 

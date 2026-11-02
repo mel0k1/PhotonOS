@@ -34,8 +34,8 @@ def main() -> int:
     u.pass2_edit.setText("hunter2")
     win.settings.de = "macshell"
 
-    last = len(STEPS) - 1
-    for i, key in enumerate(STEPS):
+    last = len(STEPS) - 2   # из «Сводки» в «Установку» идём отдельно, с dry-run
+    for i, key in enumerate(STEPS[:-1]):
         win.step_idx = i
         win.stack.setCurrentIndex(i)
         win.steps[key].refresh(win.settings)
@@ -44,8 +44,32 @@ def main() -> int:
         app.processEvents()
         win.grab().save(f"{out}/{i + 1:02d}-{key}.png")
         print("shot:", key)
-        if i < last:
-            win.go_next()          # apply() текущего шага + переход
+        if i < len(STEPS) - 2:   # с «Сводки» переходим отдельно, с dry-run
+            win.go_next()        # apply() текущего шага + переход
+
+    # шаг prog — dry-run бэкенда в QThread: интеграционный тест
+    from PySide6.QtCore import QEventLoop, QTimer
+    win.dry_run = True
+    prog = win.steps["prog"]
+    win.step_idx = len(STEPS) - 1
+    win._enter()
+    prog.start(dry_run=True)
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timer.start(60000)             # предохранитель на 60 с
+    app.processEvents()
+    # ждём финал (done/fail) — сигналы с worker-потока queued
+    while not (prog.done or prog.failed):
+        if not timer.isActive():
+            break
+        app.processEvents(QEventLoop.AllEvents, 50)
+    win._update_sidebar()
+    app.processEvents()
+    win.grab().save(f"{out}/07-prog.png")
+    print("shot: prog | done =", prog.done, "| failed =", prog.failed)
+    if prog.failed:
+        print(prog.status.text())
+        return 1
     return 0
 
 

@@ -6,20 +6,23 @@
 from __future__ import annotations
 
 import os
+import subprocess
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
-    QPushButton, QRadioButton, QScrollArea, QStackedWidget, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget,
+    QPlainTextEdit, QPushButton, QRadioButton, QScrollArea, QStackedWidget,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from . import disk, style
+from .backend import BackendError, Installer
 from .locale import tr
 from .settings import DE_OPTIONS, InstallSettings, valid_hostname, valid_login
 
-STEPS = ["welcome", "kb", "disk", "user", "de", "sum"]
+STEPS = ["welcome", "kb", "disk", "user", "de", "sum", "prog"]
 
 LAYOUTS = [
     ("us", "English (US)"), ("ru", "Русская"), ("de", "Deutsch"),
@@ -504,19 +507,139 @@ class SummaryStep(Step):
         self.tree.setHeaderLabels([tr(self.lang, "param_label"), ""])
 
 
+# ── установка (M2) ──────────────────────────────────────────────────────
+
+class InstallThread(QThread):
+    """Бэкенд в отдельном потоке; сигналы уже потокобезопасны (queued)."""
+    step_sig = Signal(str, int, int)
+    log_sig = Signal(str)
+    done_sig = Signal()
+    fail_sig = Signal(str)
+
+    def __init__(self, settings, dry_run: bool = False):
+        super().__init__()
+        self.settings = settings
+        self.dry_run = dry_run
+        self.steps = []  # (key, title) — заполнит start()
+
+    def plan(self) -> list:
+        inst = Installer(self.settings, dry_run=True)
+        return inst.build_steps()
+
+    def run(self) -> None:
+        inst = Installer(self.settings, dry_run=self.dry_run)
+        inst.on_step = lambda k, i, t: self.step_sig.emit(k, i, t)
+        inst.on_log = self.log_sig.emit
+        inst.on_done = self.done_sig.emit
+        try:
+            inst.run()
+        except BackendError as e:
+            self.fail_sig.emit(str(e))
+        except FileNotFoundError as e:
+            self.fail_sig.emit(
+                f"утилита не найдена: {e.filename or e}. "
+                "На live-ISO она входит в базовые пакеты.")
+        except OSError as e:
+            self.fail_sig.emit(f"ошибка системы: {e}")
+
+
+class ProgressStep(Step):
+    """Ход установки: список шагов слева, журнал справа."""
+    TITLE, SUB = "prog_h1", "prog_sub"
+
+    def __init__(self, mw):
+        super().__init__(mw)
+        body = QHBoxLayout()
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(1)
+        self.tree.setRootIsDecorated(False)
+        self.tree.setHeaderHidden(True)
+        self.tree.setMaximumWidth(330)
+        self.log = QPlainTextEdit()
+        self.log.setReadOnly(True)
+        self.log.setFont(QFont("DejaVu Sans Mono", 9))
+        self.log.setLineWrapMode(QPlainTextEdit.NoWrap)
+        body.addWidget(self.tree, 1)
+        body.addWidget(self.log, 2)
+        self.layout().addLayout(body, 1)
+        self.status = QLabel("")
+        self.status.setObjectName("sub")
+        self.status.setWordWrap(True)
+        self.layout().addWidget(self.status)
+        self.thread = None
+        self.done = False
+        self.failed = False
+
+    def start(self, dry_run: bool) -> None:
+        if self.thread is not None:
+            return
+        self.thread = InstallThread(self.mw.settings, dry_run=dry_run)
+        self.tree.clear()
+        for key, title, _ in self.thread.plan():
+            it = QTreeWidgetItem(self.tree, ["○  " + tr(self.lang, f"prog_step_{key}")])
+            it.step_key = key
+        self.tree.resizeColumnToContents(0)
+        self.thread.step_sig.connect(self.on_step)
+        self.thread.log_sig.connect(self.log.appendPlainText)
+        self.thread.done_sig.connect(self.on_done)
+        self.thread.fail_sig.connect(self.on_fail)
+        if dry_run:
+            self.status.setText(tr(self.lang, "prog_dry"))
+        self.thread.start()
+        self.mw._update_sidebar()
+
+    def on_step(self, key: str, idx: int, total: int) -> None:
+        for i in range(self.tree.topLevelItemCount()):
+            it = self.tree.topLevelItem(i)
+            mark = "✔" if i < idx else ("▶" if i == idx else "○")
+            it.setText(0, mark + "  " + tr(self.lang, f"prog_step_{it.step_key}"))
+        if key == "done":
+            self.status.setText(tr(self.lang, "prog_done"))
+
+    def on_done(self) -> None:
+        self.done = True
+        self.failed = False
+        self.status.setText("✔ " + tr(self.lang, "prog_done"))
+        self.status.setObjectName("ok")
+        self.status.style().unpolish(self.status)
+        self.status.style().polish(self.status)
+        self.mw._update_sidebar()
+
+    def on_fail(self, msg: str) -> None:
+        self.done = True
+        self.failed = True
+        self.status.setText("✘ " + tr(self.lang, "prog_fail") + "\n" + msg)
+        self.status.setObjectName("warn")
+        self.status.style().unpolish(self.status)
+        self.status.style().polish(self.status)
+        self.mw._update_sidebar()
+
+    def retranslate(self):
+        super().retranslate()
+        for i in range(self.tree.topLevelItemCount()):
+            it = self.tree.topLevelItem(i)
+            it.setText(0, it.text(0)[0] + "  " + tr(self.lang, f"prog_step_{it.step_key}"))
+        if self.done and not self.failed:
+            self.status.setText("✔ " + tr(self.lang, "prog_done"))
+        elif self.done and self.failed:
+            self.status.setText("✘ " + tr(self.lang, "prog_fail"))
+
+
 # ── главное окно ────────────────────────────────────────────────────────
 
 class MainWindow(QMainWindow):
     STEP_KEYS = {
         "welcome": "step_welcome", "kb": "step_kb", "disk": "step_disk",
         "user": "step_user", "de": "step_de", "sum": "step_sum",
+        "prog": "step_prog",
     }
 
     def __init__(self, lang: str = "ru", fake_disks: bool = False,
-                 warn_root: bool = False):
+                 warn_root: bool = False, dry_run: bool = False):
         super().__init__()
         self.lang = lang
         self.fake_disks = fake_disks
+        self.dry_run = dry_run
         self.settings = InstallSettings(lang=lang)
         self.settings.tz = current_timezone()
         self.step_idx = 0
@@ -565,6 +688,7 @@ class MainWindow(QMainWindow):
         for key, cls in (
             ("welcome", WelcomeStep), ("kb", KeyboardStep), ("disk", DiskStep),
             ("user", UserStep), ("de", DeStep), ("sum", SummaryStep),
+            ("prog", ProgressStep),
         ):
             w = cls(self)
             self.steps[key] = w
@@ -600,11 +724,17 @@ class MainWindow(QMainWindow):
         return STEPS[self.step_idx]
 
     def go_back(self) -> None:
+        if self.current_key() == "prog":
+            return  # во время установки назад нельзя
         if self.step_idx > 0:
             self.step_idx -= 1
             self._enter()
 
     def go_next(self) -> None:
+        if self.current_key() == "prog":
+            if self.steps["prog"].done and not self.steps["prog"].failed:
+                self._do_reboot()
+            return
         step = self.steps[self.current_key()]
         err = step.validate()
         if err:
@@ -615,9 +745,17 @@ class MainWindow(QMainWindow):
         if self.step_idx < len(STEPS) - 1:
             self.step_idx += 1
             self._enter()
-        else:
-            QMessageBox.information(
-                self, tr(self.lang, "install_btn"), tr(self.lang, "m2_note"))
+            if self.current_key() == "prog":
+                self.steps["prog"].start(dry_run=self.dry_run)
+
+    def _do_reboot(self) -> None:
+        if self.dry_run:
+            QMessageBox.information(self, tr(self.lang, "app_title"),
+                                    tr(self.lang, "prog_dry"))
+            self.close()
+            return
+        subprocess.Popen(["reboot"])
+        self.close()
 
     def _enter(self) -> None:
         self.stack.setCurrentIndex(self.step_idx)
@@ -634,9 +772,16 @@ class MainWindow(QMainWindow):
             row.style().unpolish(row)
             row.style().polish(row)
         self.back_btn.setText(tr(self.lang, "back"))
-        self.next_btn.setText(
-            tr(self.lang, "install_btn")
-            if self.step_idx == len(STEPS) - 1 else tr(self.lang, "next"))
+        prog = self.steps["prog"]
+        if self.current_key() == "prog":
+            self.back_btn.setEnabled(prog.failed)
+            self.next_btn.setText(tr(self.lang, "prog_reboot"))
+            self.next_btn.setEnabled(prog.done and not prog.failed)
+        else:
+            self.next_btn.setText(tr(self.lang, "install_btn")
+                                  if self.step_idx == len(STEPS) - 2
+                                  else tr(self.lang, "next"))
+            self.next_btn.setEnabled(True)
 
     # -- язык ------------------------------------------------------------
     def set_language(self, lang: str) -> None:
