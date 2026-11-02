@@ -22,3 +22,15 @@ diff -ruN a/src/helpers/MiscFunctions.cpp b/src/helpers/MiscFunctions.cpp
      }("true"sv, "yes"sv, "on"sv);
      // clang-format on
  }
+diff -ruN a/src/ipc/s1/S1.cpp b/src/ipc/s1/S1.cpp
+--- a/src/ipc/s1/S1.cpp	2026-11-02 21:47:33.819750235 +0000
++++ b/src/ipc/s1/S1.cpp	2026-11-02 22:08:38.921409362 +0000
+@@ -145,7 +145,7 @@
+             if (i < request.size() && (request[i + 1] == '\\' || request[i + 1] == ';'))
+                 ++i;
+             else
+-                LOG(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.subview(i, 2), i);
++                LOG(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.substr(i, 2), i);
+         }
+         parsedCommand << request[i];
+     }
