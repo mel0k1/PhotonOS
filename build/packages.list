@@ -35,6 +35,7 @@ xdg-desktop-portal-gtk
 sddm
 xserver-xorg
 xserver-xorg-video-all
+xserver-xorg-input-libinput
 
 # сеть
 network-manager

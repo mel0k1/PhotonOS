@@ -3,8 +3,10 @@
 #
 # Пайплайн:
 #   1. mmdebstrap (mode auto: root на CI, unshare на Void-хосте) — минимальный
-#      корень; хук --customize ставит пакеты из build/packages.list, вычищает
-#      мусор (доки/man/локали), включает сервисы, генерирует EFI-загрузчик
+#      корень; хук --customize ставит пакеты из build/packages.list (список
+#      вшивается в хук: в root-режиме хук идёт ВНУТРИ чрута, host-пути там
+#      не видны), вычищает мусор (доки/man/локали), включает сервисы,
+#      генерирует EFI-загрузчик
 #   2. брендинг: overlay/ (LXQt-дизайн, обои, иконки photon), plymouth-тема
 #      photon-boot (чёрный квадрат с глазами), os-release, motd
 #   3. mksquashfs -> live/filesystem.squashfs
@@ -33,12 +35,11 @@ ISO="$WORK/iso"
 rm -rf "$ROOTFS" "$ISO"
 mkdir -p "$ROOTFS" "$ISO"
 
-PKGS_FILE="$WORK/photon-packages.txt"
-printf '%s\n' "$PKGS" > "$PKGS_FILE"
-
 # ------------------------------------------------------- 1. хук кастомизации
+# Внимание: heredoc БЕЗ кавычек — $PKGS раскрывается при генерации, потому
+# что внутри чрута host-файл packages.txt недоступен.
 HOOK="$WORK/photon-hook.sh"
-cat > "$HOOK" <<'EOS'
+cat > "$HOOK" <<EOS
 #!/bin/sh
 set -eu
 export DEBIAN_FRONTEND=noninteractive
@@ -54,7 +55,11 @@ printf '%s\n' \
     > /etc/dpkg/dpkg.cfg.d/01-photon-lean
 rm -rf /usr/share/doc/* /usr/share/man/* 2>/dev/null || true
 
-xargs -a /tmp/photon-packages.txt apt-get install -y --no-install-recommends
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    $PKGS
+
+# initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
+DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 
 # сервисы: дисплейный менеджер и сеть
 systemctl enable sddm.service NetworkManager.service 2>/dev/null || true
@@ -64,11 +69,11 @@ cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
 menuentry "PhotonOS Live" {
-    linux /live/vmlinuz boot=live components quiet splash
+    linux /live/vmlinuz boot=live components quiet splash username=anon
     initrd /live/initrd
 }
 menuentry "PhotonOS Live (RAM)" {
-    linux /live/vmlinuz boot=live components quiet splash rd.live.ram
+    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram
     initrd /live/initrd
 }
 GRUB
@@ -86,9 +91,18 @@ mmdebstrap \
     --variant=apt \
     --architectures="$ARCH" \
     --aptopt='Acquire::Retries "3"' \
-    --essential-hook="cp $PKGS_FILE \$1/tmp/photon-packages.txt" \
     --customize="$HOOK" \
     "$SUITE" "$ROOTFS" "$MIRROR"
+
+# EFI-загрузчик лежит в rootfs/tmp — забираем ДО чистки /tmp
+log "загрузчики: перенос bootx64.efi"
+mkdir -p "$ISO/EFI/boot"
+if [ -s "$ROOTFS/tmp/bootx64.efi" ]; then
+    cp "$ROOTFS/tmp/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
+else
+    echo "ОШИБКА: grub-mkstandalone не создал bootx64.efi" >&2
+    exit 1
+fi
 
 # ------------------------------------------------- 2. оверлей и брендинг
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
@@ -118,7 +132,7 @@ mksquashfs "$ROOTFS" "$ISO/live/filesystem.squashfs" \
 
 # --------------------------------------------------------- 4. загрузчики
 log "загрузчики: isolinux (BIOS) + bootx64.efi (EFI)"
-mkdir -p "$ISO/isolinux" "$ISO/EFI/boot"
+mkdir -p "$ISO/isolinux"
 
 if [ -f "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" ]; then
     cp "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" "$ISO/isolinux/"
@@ -130,16 +144,12 @@ timeout 50
 
 label photon
     kernel /live/vmlinuz
-    append initrd=/live/initrd boot=live components quiet splash
+    append initrd=/live/initrd boot=live components quiet splash username=anon
 EOF
 fi
 
-if [ -s "$ROOTFS/tmp/bootx64.efi" ]; then
-    cp "$ROOTFS/tmp/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
-fi
-
 # EFI El Torito: FAT-образ с bootx64.efi
-if [ -f "$ISO/EFI/boot/bootx64.efi" ]; then
+if [ -s "$ISO/EFI/boot/bootx64.efi" ]; then
     dd if=/dev/zero of="$ISO/efiboot.img" bs=1M count=8 status=none
     mkfs.vfat "$ISO/efiboot.img" >/dev/null
     mmd -i "$ISO/efiboot.img" ::EFI ::EFI/boot

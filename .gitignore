@@ -10,3 +10,4 @@ __pycache__/
 dist/
 build/.stage-overlay/
 void-mklive/
+build/.work/
