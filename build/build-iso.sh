@@ -53,6 +53,9 @@ systemctl enable sddm.service NetworkManager.service 2>/dev/null || true
 cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
+insmod all_video
+insmod png
+background_image (memdisk)/boot/grub/bg.png
 menuentry "PhotonOS Live" {
     linux /live/vmlinuz boot=live components quiet splash username=anon
     initrd /live/initrd
@@ -63,7 +66,8 @@ menuentry "PhotonOS Live (RAM)" {
 }
 GRUB
 grub-mkstandalone -O x86_64-efi -o /tmp/bootx64.efi \
-    "boot/grub/grub.cfg=/tmp/grub-live.cfg"
+    "boot/grub/grub.cfg=/tmp/grub-live.cfg" \
+    "boot/grub/bg.png=/tmp/bg.png"
 
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/tmp/*
@@ -83,6 +87,7 @@ mmdebstrap \
     --dpkgopt='path-include=/usr/share/locale/ru*' \
     --dpkgopt='path-include=/usr/share/locale/en*' \
     --include="$PKGS" \
+    --customize-hook="copy-in $ROOT/design/boot/bg.png /tmp" \
     --customize="$HOOK" \
     "$SUITE" "$ROOTFS" "$MIRROR"
 
