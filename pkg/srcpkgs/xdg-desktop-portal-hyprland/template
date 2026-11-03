@@ -14,6 +14,7 @@ makedepends="wayland-devel wayland-protocols pipewire-devel libdrm-devel
  hyprland-protocols
  libuuid-devel glib-devel hyprtoolkit
  cairo-devel pango-devel libglvnd-devel
+ libxkbcommon-devel pixman-devel iniparser-devel abseil-cpp-devel
  libpng-devel libjpeg-turbo-devel libwebp-devel librsvg-devel file-devel"
 depends="xdg-desktop-portal hyprland"
 short_desc="xdg-desktop-portal backend for Hyprland"
