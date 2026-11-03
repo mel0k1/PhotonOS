@@ -4,3 +4,4 @@ dbus
 elogind
 NetworkManager
 sddm
+agetty-ttyS0
