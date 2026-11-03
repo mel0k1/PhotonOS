@@ -149,6 +149,8 @@ if [ -f "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" ]; then
     cp "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" "$ISO/isolinux/"
     cp "$ROOTFS/usr/lib/syslinux/modules/bios/ldlinux.c32" "$ISO/isolinux/" 2>/dev/null || true
     cp "$ROOTFS/usr/lib/syslinux/modules/bios/vesamenu.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/libcom32.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/libutil.c32" "$ISO/isolinux/" 2>/dev/null || true
     cp "$ROOT/design/boot/bg.png" "$ISO/bg.png"
     cat > "$ISO/isolinux/isolinux.cfg" <<'EOF'
 default vesamenu.c32
