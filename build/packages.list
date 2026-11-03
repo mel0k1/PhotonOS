@@ -72,3 +72,6 @@ syslinux-common
 grub-efi-amd64-bin
 dosfstools
 mtools
+pipewire
+pipewire-pulse
+wireplumber

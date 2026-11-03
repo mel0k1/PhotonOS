@@ -51,7 +51,7 @@ export DEBIAN_FRONTEND=noninteractive
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 
 # сервисы: дисплейный менеджер и сеть
-systemctl enable sddm.service NetworkManager.service 2>/dev/null || true
+systemctl enable sddm.service NetworkManager.service photon-diag.service 2>/dev/null || true
 
 # EFI-загрузчик со встроенным конфигом и брендированным фоном (bg.png кладёт
 # предыдущий хук copy-in). Пишем в /root: mmdebstrap вычищает /tmp чрута.
@@ -62,11 +62,11 @@ insmod all_video
 insmod png
 background_image (memdisk)/boot/grub/bg.png
 menuentry "PhotonOS Live" {
-    linux /live/vmlinuz boot=live components quiet splash username=anon
+    linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
     initrd /live/initrd
 }
 menuentry "PhotonOS Live (RAM)" {
-    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram
+    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200
     initrd /live/initrd
 }
 GRUB
@@ -149,7 +149,7 @@ timeout 50
 
 label photon
     kernel /live/vmlinuz
-    append initrd=/live/initrd boot=live components quiet splash username=anon
+    append initrd=/live/initrd boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
 EOF
 fi
 
