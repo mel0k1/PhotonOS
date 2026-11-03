@@ -43,4 +43,7 @@ checksum=0c26cce513dbfe73f9fdbc23b90417bf68a743c290a10c4667f32470482464cc
 
 post_install() {
         vlicense LICENSE
+        # дублирует нашу сессию PhotonOS MacShell и сбивает дефолт sddm —
+        # в PhotonOS пункт один: «PhotonOS MacShell»
+        rm -f "${DESTDIR}/usr/share/wayland-sessions/hyprland.desktop"
 }

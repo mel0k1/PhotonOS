@@ -1,0 +1,4 @@
+#!/bin/sh
+# PhotonOS: автологин anon на serial-консоли (отладка live-образа, M3).
+[ -r conf ] && . ./conf
+exec agetty --autologin anon --noclear -L 115200 ttyS0 vt100

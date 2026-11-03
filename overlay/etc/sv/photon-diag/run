@@ -1,0 +1,25 @@
+#!/bin/sh
+# Диагностика live-сессии MacShell: через 90 секунд после старта выгружает
+# состояние в serial-консоль (ttyS0) и гасит себя.
+sleep 90
+{
+    echo "===== photon-diag $(date) ====="
+    echo "--- ps ---"
+    ps aux | grep -E 'sddm|Hyprland|qs |quickshell|awww|Xorg|kitty' | grep -v grep
+    echo "--- hypr skel ---"
+    ls -la /home/anon/.config/hypr/ 2>&1
+    echo "--- hyprland.lua ---"
+    cat /home/anon/.config/hypr/hyprland.lua 2>&1
+    echo "--- macshell.lua (head) ---"
+    head -20 /home/anon/.config/hypr/macshell.lua 2>&1
+    echo "--- quickshell configs ---"
+    ls /home/anon/.config/quickshell/ 2>&1
+    echo "--- sddm.log tail ---"
+    tail -n 40 /var/log/sddm.log 2>&1
+    echo "--- hyprland.log tail ---"
+    tail -n 30 /home/anon/.cache/hyprland/*/hyprland.log 2>&1
+    echo "--- services ---"
+    ls /var/service/ 2>&1
+    echo "===== end photon-diag ====="
+} > /dev/ttyS0 2>&1
+exec sleep infinity
