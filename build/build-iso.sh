@@ -78,6 +78,7 @@ grub-mkstandalone -O x86_64-efi -o /tmp/bootx64.efi \
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/tmp/*
 EOS
+chmod +x "$HOOK"
 
 log "mmdebstrap: корень Debian $SUITE + пакеты PhotonOS"
 mmdebstrap \
