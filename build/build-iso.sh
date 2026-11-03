@@ -37,9 +37,13 @@ rm -rf "$ROOTFS" "$ISO"
 mkdir -p "$ROOTFS" "$ISO"
 
 # ------------------------------------------------------- 1. хук кастомизации
+# ВАЖНО: mmdebstrap исполняет customize-хук НА ХОСТЕ (без chroot), передавая
+# корень как $1. Весь гостевой код — через `chroot "$1"`.
 HOOK="$WORK/photon-hook.sh"
 cat > "$HOOK" <<'EOS'
 #!/bin/sh
+set -eu
+chroot "$1" /bin/sh <<'CHROOT'
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 
@@ -49,7 +53,8 @@ DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 # сервисы: дисплейный менеджер и сеть
 systemctl enable sddm.service NetworkManager.service 2>/dev/null || true
 
-# EFI-загрузчик со встроенным конфигом (генерируем внутри корня)
+# EFI-загрузчик со встроенным конфигом и брендированным фоном (bg.png кладёт
+# предыдущий хук copy-in)
 cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
@@ -71,6 +76,7 @@ grub-mkstandalone -O x86_64-efi -o /tmp/bootx64.efi \
 
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/tmp/*
+CHROOT
 EOS
 chmod +x "$HOOK"
 
@@ -98,6 +104,7 @@ if [ -s "$ROOTFS/tmp/bootx64.efi" ]; then
     cp "$ROOTFS/tmp/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
 else
     echo "ОШИБКА: grub-mkstandalone не создал bootx64.efi" >&2
+    ls -la "$ROOTFS/tmp/" 2>/dev/null || true
     exit 1
 fi
 
