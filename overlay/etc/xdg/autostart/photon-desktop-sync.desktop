@@ -2,7 +2,6 @@
 Type=Application
 Name=PhotonOS desktop sync
 Comment=Синхронизация ярлыков рабочего стола из /etc/skel/Desktop
-Exec=/usr/share/photon/desktop-sync.sh
-TryExec=/usr/share/photon/desktop-sync.sh
+Exec=/bin/sh /usr/share/photon/desktop-sync.sh
 X-GNOME-Autostart-enabled=true
 NoDisplay=true

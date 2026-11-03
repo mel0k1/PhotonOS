@@ -120,7 +120,8 @@ fi
 # ------------------------------------------------- 2. оверлей и брендинг
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
 cp -a "$ROOT/overlay/." "$ROOTFS/"
-chmod +x "$ROOTFS/usr/share/photon/diag.sh"
+chmod +x "$ROOTFS/usr/share/photon/diag.sh" \
+       "$ROOTFS/usr/share/photon/desktop-sync.sh"
 # photon-diag: юнит появляется только с оверлеем — включаем симлинком здесь
 # (systemctl enable в customize-хуке mmdebstrap отработал РАНЬШЕ оверлея)
 mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
