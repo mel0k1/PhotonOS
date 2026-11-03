@@ -130,11 +130,14 @@ ln -sf ../photon-diag.service \
 # PipeWire для всех пользователей: глобальные user-юниты (локальный enable
 # юзера live-config не применяет пресеты — иконка звука оставалась красной)
 mkdir -p "$ROOTFS/etc/systemd/user/sockets.target.wants" \
+         "$ROOTFS/etc/systemd/user/default.target.wants" \
          "$ROOTFS/etc/systemd/user/pipewire.service.wants"
 ln -sf /usr/lib/systemd/user/pipewire.socket \
     "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire.socket"
 ln -sf /usr/lib/systemd/user/pipewire-pulse.socket \
     "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire-pulse.socket"
+ln -sf /usr/lib/systemd/user/pipewire.service \
+    "$ROOTFS/etc/systemd/user/default.target.wants/pipewire.service"
 ln -sf /usr/lib/systemd/user/wireplumber.service \
     "$ROOTFS/etc/systemd/user/pipewire.service.wants/wireplumber.service"
 
