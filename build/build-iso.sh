@@ -157,6 +157,7 @@ default vesamenu.c32
 prompt 0
 timeout 50
 
+MENU RESOLUTION 1024 768
 MENU BACKGROUND /bg.png
 MENU TITLE Photon OS
 
