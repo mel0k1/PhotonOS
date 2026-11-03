@@ -49,9 +49,11 @@ export DEBIAN_FRONTEND=noninteractive
 
 # локали: генерируем en_US + ru_RU сразу в chroot (live-config в boot
 # генерировать не успевает — сессия стартует с C-локалью, Qt ругается)
-sed -i 's/^# *\(ru_RU.UTF-8 UTF-8\)/\1/;s/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen
-locale-gen
-update-locale LANG=en_US.UTF-8
+if [ -f /etc/locale.gen ]; then
+    sed -i 's/^# *\(ru_RU.UTF-8 UTF-8\)/\1/;s/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+    locale-gen
+    update-locale LANG=en_US.UTF-8
+fi
 
 # initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
