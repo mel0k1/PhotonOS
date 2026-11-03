@@ -1,75 +1,67 @@
-# Список пакетов live-образа PhotonOS.
+# Список пакетов live-образа PhotonOS (база Debian, suite: trixie).
 # Формат: один пакет на строку, строки с # — комментарии.
-# Ядро задаётся отдельно флагом -v linux-lts в build/build-iso.sh.
+# База ставится mmdebstrap --variant=apt (essential + apt); здесь — всё остальное.
 
-# база Void Linux: glibc, runit, xbps, elogind
-base-system
-sudo
-nano
-curl
-git
+# ядро и live-механика
+linux-image-amd64
+live-boot
+live-config
+live-tools
+initramfs-tools
 
-# сеть
-NetworkManager
-network-manager-applet
+# загрузочная анимация photon-boot (тема ставится оверлеем из branding/)
+plymouth
+plymouth-label
 
-# графика: Xorg + LXQt + стек оформления в духе Deepin
-xorg
-sddm
-lxqt
+# LXQt — ядро окружения, без метапакетов-мусора
+lxqt-core
+lxqt-panel
+lxqt-runner
+lxqt-session
+lxqt-archiver
+lxqt-powermanagement
+lxqt-policykit
+lxqt-sudo
 pcmanfm-qt
 qterminal
 lximage-qt
-lxqt-archiver
+openbox
 obconf-qt
-lxqt-powermanagement
+picom
 xdg-desktop-portal-lxqt
+xdg-desktop-portal-gtk
+
+# дисплейный менеджер и сессия
+sddm
+xserver-xorg
+xserver-xorg-video-all
+
+# сеть
+network-manager
+network-manager-gnome
+ca-certificates
+curl
 
 # оформление: плоский светлый стиль, тени/полупрозрачность
-openbox
-picom
 papirus-icon-theme
 arc-theme
-
-# сессия MacShell (macOS Tahoe-стиль, docs/MACSHELL.md):
-# hyprland/hyprlock/hypridle/portal — НАШИ пакеты из pkg/srcpkgs,
-# попадают в ISO через локальный репозиторий (build/build-iso.sh);
-# остальное — из репозитория Void.
-hyprland
-hyprlock
-hypridle
-xdg-desktop-portal-hyprland
-quickshell
-# программный Vulkan для Hyprland в VM (на живом железе — драйверы GPU)
-mesa-vulkan-lavapipe
-awww
-kitty
-cliphist
-grim
-slurp
-wl-clipboard
-wf-recorder
-brightnessctl
-inotify-tools
-pipewire
-wireplumber
-playerctl
 qt6ct
-font-inter
-noto-fonts-emoji
-polkit-gnome
-xdg-desktop-portal
-xdg-desktop-portal-gtk
-fastfetch
 
-# загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
-plymouth
+# шрифты
+fonts-noto-core
+fonts-noto-color-emoji
 
-# графический установщик (PySide6, docs/INSTALLER.md)
-python3-pyside6
-python3-pyside6-gui
-python3-pyside6-widgets
-
-# шрифты и интеграция
-noto-fonts-ttf
+# утилиты PhotonOS и базовые удобства
+sudo
+nano
 xdg-user-dirs
+dbus-x11
+policykit-1
+upower
+
+# инструменты сборки ISO (гостевые: isolinux, grub-efi, fat)
+isolinux
+syslinux-common
+grub-efi-amd64-bin
+dosfstools
+mtools

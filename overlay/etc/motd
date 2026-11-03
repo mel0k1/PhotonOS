@@ -1,7 +1,7 @@
-  Photon OS 0.1 — лёгкий дистрибутив на базе Void Linux (glibc + runit)
 
-  справка пакетного менеджера ... ppm help
-  обновить систему .............. ppm update
+  PhotonOS 0.2 — лёгкий дистрибутив на базе Debian (минимум лишнего)
+
   сводка о системе .............. photon-fetch
+  пакеты ........................ apt (ppm — обёртка, в разработке)
+  проект ........................ https://github.com/mel0k1/PhotonOS
 
-  проект: https://github.com/mel0k1/PhotonOS

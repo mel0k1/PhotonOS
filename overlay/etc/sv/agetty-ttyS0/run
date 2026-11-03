@@ -1,5 +1,0 @@
-#!/bin/sh
-# PhotonOS: автологин anon на serial-консоли (отладка live-образа, M3).
-# Порядок аргументов agetty: опции, ПОРТ, скорость, term.
-[ -r conf ] && . ./conf
-exec agetty --autologin anon --noclear -L ttyS0 115200 vt100

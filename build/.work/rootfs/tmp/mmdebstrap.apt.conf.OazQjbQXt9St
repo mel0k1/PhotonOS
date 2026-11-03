@@ -1,0 +1,8 @@
+Apt::Architecture "amd64";
+Apt::Architectures "amd64";
+Dir "/home/z/my-project/PhotonOS/build/.work/rootfs";
+DPkg::Chroot-Directory "/home/z/my-project/PhotonOS/build/.work/rootfs";
+Dir::State::Status "/home/z/my-project/PhotonOS/build/.work/rootfs/var/lib/dpkg/status";
+Dir::Etc::Trusted "";
+Dir::Etc::TrustedParts "/etc/apt/trusted.gpg.d/";
+pkgCacheGen::ForceEssential ",";

@@ -1,6 +1,6 @@
 <div align="center">
 
-# Photon OS
+# PhotonOS
 
 ```text
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*
@@ -23,177 +23,79 @@
 +@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ```
 
-**Лёгкий дистрибутив Linux на базе Void Linux: glibc + runit + XBPS.**
+**Лёгкий дистрибутив Linux на базе Debian: минимум лишнего, фирменный вид.**
 
 [![CI](https://github.com/mel0k1/PhotonOS/actions/workflows/build.yml/badge.svg)](https://github.com/mel0k1/PhotonOS/actions/workflows/build.yml)
-![Base](https://img.shields.io/badge/base-Void%20Linux-green)
-![Init](https://img.shields.io/badge/init-runit-orange)
-![Libc](https://img.shields.io/badge/libc-glibc-blue)
+![Base](https://img.shields.io/badge/base-Debian%2013%20trixie-blue)
+![Desktop](https://img.shields.io/badge/desktop-LXQt%20%2B%20picom-green)
+![Boot](https://img.shields.io/badge/boot-plymouth%20photon--boot-orange)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 </div>
 
 ## О проекте
 
-PhotonOS — независимый дистрибутив, собранный на проверенной базе Void Linux и
-ориентированный на лёгкость. Ничего лишнего: минимальный базовый набор пакетов,
-быстрый init на **runit**, проверенная пакетная система **XBPS** (вариант
-**glibc**) и фирменные инструменты поверх неё.
+PhotonOS — независимый дистрибутив-/live-образ, собранный на **минимальном
+Debian**: только база, наш рабочий стол и наш брендинг — без мусора.
 
 Основные решения:
 
-- **База** — Void Linux, rolling release, репозитории совместимы на 100%.
-- **Init** — runit: стартует за секунды, сервисы — три файла в `/etc/sv`.
-- **Библиотеки** — glibc: полная совместимость со сторонним и проприетарным софтом.
-- **Пакетник** — `ppm` (Photon Package Manager): обёртка над XBPS с человеческим
-  интерфейсом, цветным выводом и ASCII-логотипом.
-- **Рабочее окружение** — **LXQt** с оформлением в духе **Deepin**: нижняя
-  панель-док, светлые темы, композитор picom с тенями и блюром.
+- **База** — Debian trixie, стабильные пакеты, предсказуемые обновления.
+- **Минимум** — LXQt-ядро без метапакетов, без офиса и прочего лишнего;
+  документация и man-страницы вырезаны на уровне dpkg.
+- **Рабочий стол** — **LXQt в духе Deepin**: нижняя панель-док, светлые темы
+  (Arc + Papirus), композитор **picom** с тенями и блюром, фирменные обои.
+- **Загрузка** — фирменная plymouth-тема **photon-boot**: чёрный квадрат
+  с двумя белыми глазами собирается из кадра за кадром.
+- **Брендинг** — os-release, motd, issue, иконки photon, photon-fetch.
 
-## Рабочий стол: LXQt в духе Deepin
-
-v0.1 выходит на **LXQt** из репозиториев Void, оформленном под Deepin:
-
-- нижняя панель-док: иконки без текста, крупные, на всю ширину экрана;
-- светлые темы **Arc** (GTK) + **Papirus** (иконки) — плоско, скруглённо,
-  близко к фирменному стилю Deepin;
-- фирменная тема иконок **photon** (наследует Papirus): Корзина,
-  «Недавние документы» и Файловый менеджер — из авторских артов
-  (`design/icons-src/`, генератор — `scripts/make_icons.py`);
-- обои: 4 авторских изображения (`design/wallpapers-src/` →
-  `scripts/make_wallpapers.py` → `/usr/share/backgrounds/photon-*.jpg`) +
-  градиент `photon-deepin.png`. По умолчанию — `photon-flow.jpg`;
-  смена — без правки файлов: правый клик по рабочему столу →
-  «Настройки рабочего стола» (вкладка «Обои») или
-  «Настройки внешнего вида» LXQt;
-- на рабочем столе — ярлык «Корзина» (`/etc/skel/Desktop/`);
-- композитор **picom**: тени, полупрозрачность, фоновое размытие (конфиг —
-  `/etc/photon/picom.conf`, автозапуск через XDG autostart);
-- дефолты пользователя — `overlay/etc/skel/.config/`: lxqt.conf, panel.conf,
-  session.conf, user-dirs.dirs, настройки pcmanfm-qt и GTK.
-
-Честно про DDE: в репозиториях Void его нет, а собственная упаковка (шаблоны
-DTK и оболочки в [`pkg/`](pkg/README.md)) отложена — слишком большой объём
-работы ради перегонки целого DE. Шаблоны сохранены (готовая база: `pkg/build.sh`
-+ `xbps-src`), но ISO собирается на LXQt.
-
-## Вторая сессия: MacShell (macOS Tahoe-стиль)
-
-Помимо LXQt ISO несёт экспериментальную сессию **PhotonOS MacShell**:
-композитор **Hyprland** + оболочка **MacShell** на Quickshell — менюбар, Dock,
-Spotlight, центр управления и экран блокировки MacLock в стиле macOS Tahoe
-(проект [0-ss/MacShell](https://github.com/0-ss/MacShell), вендорен в
-`pkg/vendor/MacShell`). Сам Hyprland и его библиотеки в Void не пакуются —
-стек собирается нашими шаблонами (`pkg/srcpkgs/hypr*`) в локальный репозиторий
-на этапе сборки ISO. Выбор сессии — в SDDM; установщик предлагает MacShell
-на шаге «Окружение». Подробности и ограничения —
-[`docs/MACSHELL.md`](docs/MACSHELL.md).
-
-## Скриншоты
-
-Превью интерфейса отрисованы по реальным конфигам PhotonOS
-(`scripts/screens_lxqt.py`); фото живой сессии — после первого билда ISO.
-
-| Рабочий стол | Меню приложений |
-| --- | --- |
-| ![Рабочий стол](docs/screens/desktop.jpg) | ![Меню](docs/screens/menu.jpg) |
-| **Терминал** (`photon-fetch`) | **Смена обоев через настройки** |
-| ![Терминал](docs/screens/terminal.jpg) | ![Обои](docs/screens/wallpaper-settings.jpg) |
+История: раньше проект собирался на базе Void Linux (glibc + runit + XBPS,
+шаблоны DDE и Hyprland-стека) — эта линия закрыта, вся обвязка удалена;
+в git-истории осталась.
 
 ## Состав репозитория
 
 ```text
 PhotonOS/
-├── build/                  # сборка ISO
-│   ├── build-iso.sh        # обёртка над void-mklive
-│   ├── packages.list       # пакеты live-образа
-│   └── services.list       # runit-сервисы образа
-├── ppm/
-│   └── ppm                 # Photon Package Manager (обёртка над XBPS)
-├── fetch/
-│   └── photon-fetch        # ASCII-сводка о системе
-├── overlay/                # файлы, попадающие в корень ISO
-│   ├── etc/motd, etc/issue, etc/photon/picom.conf
-│   ├── etc/skel/.config/   # дефолты LXQt в стиле Deepin
-│   ├── etc/skel/Desktop/   # ярлык «Корзина» на рабочем столе
-│   ├── usr/share/icons/photon/   # фирменная тема иконок (поверх Papirus)
-│   ├── usr/share/backgrounds/    # обои photon-*.jpg + photon-deepin.png
+├── build/
+│   ├── build-iso.sh        # пайплайн: mmdebstrap -> squashfs -> ISO
+│   └── packages.list       # пакеты live-образа (Debian trixie)
+├── branding/
+│   └── plymouth/photon-boot/  # тема загрузки (кадры анимации)
+├── overlay/                # файлы, попадающие в корень образа
+│   ├── etc/motd, issue, photon/picom.conf, plymouth/plymouthd.conf
+│   ├── etc/skel/           # дефолты LXQt в стиле Deepin + Корзина
+│   ├── usr/share/backgrounds/  # фирменные обои
+│   ├── usr/share/icons/photon/ # фирменные иконки (24-256)
 │   └── usr/lib/os-release  # брендинг системы
-├── design/                 # авторские исходники: иконки и обои
-├── installer/              # графический установщик (PySide6, см. docs/INSTALLER.md)
+├── ppm/ppm                 # Photon Package Manager (обёртка, порт с XBPS)
+├── fetch/photon-fetch      # ASCII-сводка о системе
 ├── logo/photon.txt         # ASCII-логотип
-├── docs/                   # PPM.md, BUILDING.md, PACKAGING.md, INSTALLER.md, MACSHELL.md
-├── pkg/                    # шаблоны xbps-src: стек Hyprland, DDE (пауза) + vendor/MacShell
-├── scripts/                # утилиты (make_icons.py, make_wallpapers.py, ...)
-└── .github/workflows/      # CI: ISO на push, пакеты — вручную (цепочка hyprland/dde)
-```
-
-## ppm — пакетный менеджер
-
-`ppm` — тонкая обёртка над XBPS: те же скорости, понятные команды, цветной
-вывод. Полная справка — [`docs/PPM.md`](docs/PPM.md).
-
-| Команда                 | Что делает                        | Под капотом      |
-| ----------------------- | --------------------------------- | ---------------- |
-| `ppm sync`              | синхронизировать индексы репо     | `xbps-install -S`  |
-| `ppm install firefox`   | установить пакеты                 | `xbps-install -S`  |
-| `ppm update`            | обновить систему целиком          | `xbps-install -Su` |
-| `ppm remove firefox`    | удалить пакеты с зависимостями    | `xbps-remove -R`   |
-| `ppm search слово`      | поиск по репозиториям             | `xbps-query -Rs`   |
-| `ppm autoremove`        | удалить пакеты-сироты             | `xbps-remove -O`   |
-| `ppm clean`             | очистить кэш пакетов              | `xbps-remove -m`   |
-| `ppm list`              | список установленных              | `xbps-query -l`    |
-
-Установка на работающую систему (или на машину с Void):
-
-```sh
-sudo install -Dm755 ppm/ppm /usr/bin/ppm
-```
-
-## photon-fetch
-
-ASCII-сводка о системе: логотип PhotonOS + ОС, ядро, аптайм, число пакетов,
-оболочка, ДЕ, CPU, память. Чистый POSIX sh, без зависимостей — работает даже в
-голой консоли.
-
-```sh
-./fetch/photon-fetch
+├── scripts/                # генераторы обоев/иконок
+└── .github/workflows/      # CI: ISO на push в main
 ```
 
 ## Сборка ISO
 
-Нужен хост Void Linux (или контейнер `ghcr.io/void-linux/void-mklive`), ~12 ГБ
-диска. Сборка включает локальный репозиторий со стеком Hyprland — закладывайте
-лишние ~30 минут; отключается `PHOTON_HYPR=0`, MacShell — `PHOTON_MACSHELL=0`.
-Подробности — [`docs/BUILDING.md`](docs/BUILDING.md).
+Нужен хост Debian/Ubuntu с правами root (CI делает всё сам):
 
 ```sh
-./build/build-iso.sh          # результат: dist/PhotonOS-live-x86_64-<дата>.iso
+apt install mmdebstrap squashfs-tools xorriso mtools dosfstools
+./build/build-iso.sh          # результат: dist/PhotonOS-live-amd64-<дата>.iso
 ```
 
-CI собирает ISO автоматически на каждый push в `main` (вкладка Actions) —
-образ доступен артефактом сборки. Установка с образа — стандартный
-`void-installer` из live-сессии.
+CI собирает ISO на каждый push в `main` — образ доступен артефактом сборки
+(вкладка Actions). Загрузка: BIOS (isolinux) и EFI (grub), live-пользователь
+`user` с паролем `live` (стандарт Debian live).
 
-## Дорожная карта
+## Сборка из исходников — планы
 
-- [x] Каркас репозитория: `ppm`, `photon-fetch`, брендинг
-- [x] Сборка ISO через void-mklive + CI на push
-- [x] Загрузочная анимация: plymouth-тема `photon-boot` из фирменного ролика
-- [x] Рабочий стол: LXQt + оформление в духе Deepin (панель-док, picom, Papirus, Arc, обои)
-- [x] Фирменные иконки и обои: тема `photon`, 4 обоев, ярлык «Корзина», смена обоев через настройки
-- [x] Заготовка упаковки DDE: шаблоны DTK и оболочки в `pkg/` (на паузе)
-- [ ] Графический установщик системы ([docs/INSTALLER.md](docs/INSTALLER.md)) — M2 готов: бэкенд sfdisk → xbps → GRUB → fstab, экран прогресса, dry-run
-- [x] Сессия MacShell (M3): стек Hyprland шаблонами `pkg/srcpkgs`, сессия в SDDM и skel, выбор в установщике ([docs/MACSHELL.md](docs/MACSHELL.md))
-- [ ] Фирменные приложения PhotonOS (центр управления, приветствие при входе)
-- [ ] Публичный репозиторий пакетов (xbps-rindex) — когда появится свой софт
-
-## Благодарности
-
-- [Void Linux](https://voidlinux.org/) — идеальная база и `void-mklive`.
-- [Deepin](https://www.deepin.org/) — источник вдохновения для оформления:
-  LXQt в PhotonOS настроен под его фирменный стиль.
-- Обёртка `ppm` ни на что не претендует: под капотом честный XBPS.
+- [x] Перевод на базу Debian, минимизация
+- [x] Фирменная загрузка photon-boot и логотип
+- [x] LXQt в духе Deepin
+- [ ] ppm: порт с XBPS на apt
+- [ ] Установщик на диск (порт с Void-версии)
+- [ ] Фирменные приложения
 
 ## Лицензия
 

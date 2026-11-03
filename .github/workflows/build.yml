@@ -15,32 +15,30 @@ concurrency:
 
 jobs:
   iso:
-    name: Сборка live-ISO
+    name: Сборка live-ISO (Debian base)
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    container:
-      # тот же образ, которым собирает сам Void Linux
-      image: ghcr.io/void-linux/void-mklive:20250116R1
-      options: --privileged
-      volumes:
-        - /dev:/dev
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Зависимости контейнера
-        # xbps дерева (>= 0.60) новее xbps в образе 2025-01 — обновляем хостовой
-        run: xbps-install -Suy xbps; command -v git >/dev/null 2>&1 || xbps-install -Sy git
+      - name: Инструменты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            mmdebstrap squashfs-tools xorriso mtools dosfstools \
+            debian-archive-keyring fakeroot
 
       - name: Сборка ISO
         run: ./build/build-iso.sh
         env:
-          REPO: https://repo-ci.voidlinux.org/current
+          SUITE: trixie
+          MIRROR: https://deb.debian.org/debian
 
       - name: Публикация артефакта
         uses: actions/upload-artifact@v4
         with:
-          name: PhotonOS-live-x86_64
+          name: PhotonOS-live-amd64
           path: dist/*.iso
           if-no-files-found: error
           retention-days: 14
