@@ -66,7 +66,7 @@ systemctl enable sddm.service NetworkManager.service photon-diag.service 2>/dev/
 cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
-loadfont (memdisk)/boot/grub/fonts/unicode.pf2
+loadfont (memdisk)/boot/grub/fonts/ascii.pf2
 set gfxmode=1024x768
 set gfxpayload=keep
 insmod all_video
@@ -86,7 +86,7 @@ GRUB
 grub-mkstandalone -O x86_64-efi -o /root/bootx64.efi \
     "boot/grub/grub.cfg=/tmp/grub-live.cfg" \
     "boot/grub/bg.png=/root/bg.png" \
-    "boot/grub/fonts/unicode.pf2=/usr/share/grub/unicode.pf2"
+    "boot/grub/fonts/ascii.pf2=/usr/share/grub/ascii.pf2"
 
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/tmp/*
