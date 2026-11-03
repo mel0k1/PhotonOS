@@ -8,6 +8,7 @@ live-boot
 live-config
 live-tools
 initramfs-tools
+zstd
 
 # загрузочная анимация photon-boot (тема ставится оверлеем из branding/)
 plymouth

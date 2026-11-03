@@ -54,7 +54,7 @@ DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 systemctl enable sddm.service NetworkManager.service 2>/dev/null || true
 
 # EFI-загрузчик со встроенным конфигом и брендированным фоном (bg.png кладёт
-# предыдущий хук copy-in)
+# предыдущий хук copy-in). Пишем в /root: mmdebstrap вычищает /tmp чрута.
 cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
@@ -70,9 +70,9 @@ menuentry "PhotonOS Live (RAM)" {
     initrd /live/initrd
 }
 GRUB
-grub-mkstandalone -O x86_64-efi -o /tmp/bootx64.efi \
+grub-mkstandalone -O x86_64-efi -o /root/bootx64.efi \
     "boot/grub/grub.cfg=/tmp/grub-live.cfg" \
-    "boot/grub/bg.png=/tmp/bg.png"
+    "boot/grub/bg.png=/root/bg.png"
 
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/tmp/*
@@ -93,18 +93,19 @@ mmdebstrap \
     --dpkgopt='path-include=/usr/share/locale/ru*' \
     --dpkgopt='path-include=/usr/share/locale/en*' \
     --include="$PKGS" \
-    --customize-hook="copy-in $ROOT/design/boot/bg.png /tmp" \
+    --customize-hook="copy-in $ROOT/design/boot/bg.png /root" \
     --customize="$HOOK" \
     "$SUITE" "$ROOTFS" "$MIRROR"
 
-# EFI-загрузчик лежит в rootfs/tmp — забираем ДО чистки /tmp
+# EFI-загрузчик лежит в rootfs/root (tmp mmdebstrap вычищает сам)
 log "загрузчики: перенос bootx64.efi"
 mkdir -p "$ISO/EFI/boot"
-if [ -s "$ROOTFS/tmp/bootx64.efi" ]; then
-    cp "$ROOTFS/tmp/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
+if [ -s "$ROOTFS/root/bootx64.efi" ]; then
+    cp "$ROOTFS/root/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
+    rm -f "$ROOTFS/root/bootx64.efi" "$ROOTFS/root/bg.png"
 else
     echo "ОШИБКА: grub-mkstandalone не создал bootx64.efi" >&2
-    ls -la "$ROOTFS/tmp/" 2>/dev/null || true
+    ls -la "$ROOTFS/root/" 2>/dev/null || true
     exit 1
 fi
 
