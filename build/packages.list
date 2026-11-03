@@ -57,7 +57,8 @@ sudo
 nano
 xdg-user-dirs
 dbus-x11
-policykit-1
+polkitd
+pkexec
 upower
 
 # инструменты сборки ISO (гостевые: isolinux, grub-efi, fat)
