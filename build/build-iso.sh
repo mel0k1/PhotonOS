@@ -68,6 +68,8 @@ set timeout=5
 set default=0
 insmod all_video
 insmod png
+insmod gfxterm
+terminal_output gfxterm
 background_image (memdisk)/boot/grub/bg.png
 menuentry "PhotonOS Live" {
     linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
