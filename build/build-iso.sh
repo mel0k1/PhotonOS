@@ -112,6 +112,7 @@ fi
 # ------------------------------------------------- 2. оверлей и брендинг
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
 cp -a "$ROOT/overlay/." "$ROOTFS/"
+chmod +x "$ROOTFS/usr/share/photon/diag.sh"
 install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
