@@ -2,15 +2,16 @@
 # Сборка live-ISO PhotonOS на базе Debian (suite: trixie).
 #
 # Пайплайн:
-#   1. mmdebstrap (mode auto: root на CI, unshare на Void-хосте) — минимальный
-#      корень; хук --customize ставит пакеты из build/packages.list (список
-#      вшивается в хук: в root-режиме хук идёт ВНУТРИ чрута, host-пути там
-#      не видны), вычищает мусор (доки/man/локали), включает сервисы,
-#      генерирует EFI-загрузчик
-#   2. брендинг: overlay/ (LXQt-дизайн, обои, иконки photon), plymouth-тема
+#   1. mmdebstrap (mode auto: root на CI, unshare на Void-хосте) — корень;
+#      пакеты из build/packages.list идут через --include (apt у mmdebstrap
+#      сам делает update из своих же источников — хук host-путей не видит);
+#      мусор (доки/man/локали) режется dpkg-паттернами --dpkgopt ДО установки
+#   2. customize-хук: пересборка initramfs (после live-boot/plymouth),
+#       сервисы, EFI-загрузчик со встроенным конфигом
+#   3. брендинг: overlay/ (LXQt-дизайн, обои, иконки photon), plymouth-тема
 #      photon-boot (чёрный квадрат с глазами), os-release, motd
-#   3. mksquashfs -> live/filesystem.squashfs
-#   4. isolinux (BIOS) + bootx64.efi (EFI) -> xorriso -> ISO
+#   4. mksquashfs -> live/filesystem.squashfs
+#   5. isolinux (BIOS) + bootx64.efi (EFI) -> xorriso -> ISO
 #
 # Хосту нужны: mmdebstrap, squashfs-tools, xorriso, mtools, dosfstools
 # (в CI ставит workflow). Результат: dist/PhotonOS-live-amd64-<дата>.iso
@@ -25,7 +26,7 @@ WORK="$ROOT/build/.work"
 
 log() { printf '\033[36m==> \033[1m%s\033[0m\n' "$1"; }
 
-PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/packages.list" | tr '\n' ' ')
+PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/packages.list" | paste -sd,)
 STAMP=$(date +%Y%m%d)
 OUT="$OUT_DIR/PhotonOS-live-$ARCH-$STAMP.iso"
 
@@ -36,27 +37,11 @@ rm -rf "$ROOTFS" "$ISO"
 mkdir -p "$ROOTFS" "$ISO"
 
 # ------------------------------------------------------- 1. хук кастомизации
-# Внимание: heredoc БЕЗ кавычек — $PKGS раскрывается при генерации, потому
-# что внутри чрута host-файл packages.txt недоступен.
 HOOK="$WORK/photon-hook.sh"
-cat > "$HOOK" <<EOS
+cat > "$HOOK" <<'EOS'
 #!/bin/sh
 set -eu
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-
-# мусор: документация, man, лишние локали — будущие пакеты тоже без них
-printf '%s\n' \
-    'path-exclude=/usr/share/doc/*' \
-    'path-exclude=/usr/share/man/*' \
-    'path-exclude=/usr/share/locale/*' \
-    'path-include=/usr/share/locale/ru*' \
-    'path-include=/usr/share/locale/en*' \
-    > /etc/dpkg/dpkg.cfg.d/01-photon-lean
-rm -rf /usr/share/doc/* /usr/share/man/* 2>/dev/null || true
-
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    $PKGS
 
 # initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
@@ -91,6 +76,13 @@ mmdebstrap \
     --variant=apt \
     --architectures="$ARCH" \
     --aptopt='Acquire::Retries "3"' \
+    --aptopt='Apt::Install-Recommends "false"' \
+    --dpkgopt='path-exclude=/usr/share/doc/*' \
+    --dpkgopt='path-exclude=/usr/share/man/*' \
+    --dpkgopt='path-exclude=/usr/share/locale/*' \
+    --dpkgopt='path-include=/usr/share/locale/ru*' \
+    --dpkgopt='path-include=/usr/share/locale/en*' \
+    --include="$PKGS" \
     --customize="$HOOK" \
     "$SUITE" "$ROOTFS" "$MIRROR"
 
