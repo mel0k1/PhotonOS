@@ -30,7 +30,7 @@ jobs:
             debian-archive-keyring fakeroot
 
       - name: Сборка ISO
-        run: ./build/build-iso.sh
+        run: sudo -E ./build/build-iso.sh
         env:
           SUITE: trixie
           MIRROR: https://deb.debian.org/debian
