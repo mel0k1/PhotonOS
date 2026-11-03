@@ -47,6 +47,12 @@ chroot "$1" /bin/sh <<'CHROOT'
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 
+# локали: генерируем en_US + ru_RU сразу в chroot (live-config в boot
+# генерировать не успевает — сессия стартует с C-локалью, Qt ругается)
+sed -i 's/^# *\(ru_RU.UTF-8 UTF-8\)/\1/;s/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+locale-gen
+update-locale LANG=en_US.UTF-8
+
 # initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 
@@ -118,6 +124,18 @@ chmod +x "$ROOTFS/usr/share/photon/diag.sh"
 mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
 ln -sf ../photon-diag.service \
     "$ROOTFS/etc/systemd/system/multi-user.target.wants/photon-diag.service"
+
+# PipeWire для всех пользователей: глобальные user-юниты (локальный enable
+# юзера live-config не применяет пресеты — иконка звука оставалась красной)
+mkdir -p "$ROOTFS/etc/systemd/user/sockets.target.wants" \
+         "$ROOTFS/etc/systemd/user/pipewire.service.wants"
+ln -sf /usr/lib/systemd/user/pipewire.socket \
+    "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire.socket"
+ln -sf /usr/lib/systemd/user/pipewire-pulse.socket \
+    "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire-pulse.socket"
+ln -sf /usr/lib/systemd/user/wireplumber.service \
+    "$ROOTFS/etc/systemd/user/pipewire.service.wants/wireplumber.service"
+
 install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
