@@ -9,6 +9,9 @@ live-config
 live-tools
 initramfs-tools
 zstd
+# d-i-утилита создания live-юзера: без неё компонент user-setup live-config
+# молча не отрабатывает (при --no-install-recommends не ставится сам)
+user-setup
 
 # загрузочная анимация photon-boot (тема ставится оверлеем из branding/)
 plymouth
