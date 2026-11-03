@@ -113,6 +113,11 @@ fi
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
 cp -a "$ROOT/overlay/." "$ROOTFS/"
 chmod +x "$ROOTFS/usr/share/photon/diag.sh"
+# photon-diag: юнит появляется только с оверлеем — включаем симлинком здесь
+# (systemctl enable в customize-хуке mmdebstrap отработал РАНЬШЕ оверлея)
+mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
+ln -sf ../photon-diag.service \
+    "$ROOTFS/etc/systemd/system/multi-user.target.wants/photon-diag.service"
 install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
@@ -143,14 +148,25 @@ mkdir -p "$ISO/isolinux"
 if [ -f "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" ]; then
     cp "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" "$ISO/isolinux/"
     cp "$ROOTFS/usr/lib/syslinux/modules/bios/ldlinux.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/vesamenu.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOT/design/boot/bg.png" "$ISO/bg.png"
     cat > "$ISO/isolinux/isolinux.cfg" <<'EOF'
-default photon
+default vesamenu.c32
 prompt 0
 timeout 50
 
+MENU BACKGROUND /bg.png
+MENU TITLE Photon OS
+
 label photon
+    menu label PhotonOS Live
     kernel /live/vmlinuz
     append initrd=/live/initrd boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
+
+label ram
+    menu label PhotonOS Live (RAM)
+    kernel /live/vmlinuz
+    append initrd=/live/initrd boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200
 EOF
 fi
 
