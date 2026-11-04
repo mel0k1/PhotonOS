@@ -40,17 +40,29 @@ jobs:
           SUITE: trixie
           MIRROR: https://deb.debian.org/debian
 
-      # При падении — лог сборки в публичную ветку ci-logs
-      # (raw.githubusercontent.com отдаёт его без авторизации)
-      - name: "Диагностика: лог сборки в ветку ci-logs"
-        if: failure()
+      # Катящийся релиз «iso»: последняя сборка всегда лежит публично
+      # (релизы качаются без авторизации, в отличие от артефактов).
+      # Сюда же идёт build.log — по нему видно падения без доступа к Actions.
+      - name: "Публикация rolling-релиза «iso» (ISO + лог сборки)"
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.email "ci@photonos.invalid"
-          git config user.name "ci-diag"
-          git checkout -B ci-logs
-          git add -f build.log
-          git commit -m "ci diag: лог сборки $GITHUB_SHA" || true
-          git push -f origin ci-logs
+          ISO=$(ls dist/*.iso 2>/dev/null | head -1)
+          REPO="$GITHUB_REPOSITORY"
+          touch build.log
+          if [ -n "$ISO" ]; then
+            ARGS=("$ISO" build.log)
+          else
+            ARGS=(build.log)
+          fi
+          gh release delete iso --yes -R "$REPO" || true
+          gh release create iso "${ARGS[@]}" -R "$REPO" \
+            --target "$GITHUB_SHA" \
+            --title "PhotonOS live ISO (rolling)" \
+            --notes "Сборка ветки debian: $GITHUB_SHA (статус джобы: ${{ job.status }}). ISO: $(basename "${ISO:-НЕТ}"). build.log — полный лог сборки." \
+          || gh release upload iso "${ARGS[@]}" -R "$REPO" --clobber || true
 
       - name: Публикация артефакта
         uses: actions/upload-artifact@v4
