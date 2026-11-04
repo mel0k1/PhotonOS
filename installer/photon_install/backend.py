@@ -198,12 +198,16 @@ class Installer:
             lines.append("size=4GiB, type=S")
         lines.append("type=L")
         script = "\n".join(lines) + "\n"
-        return [("cmd", ["sfdisk", "-f", d.path], script)]
+        # wipefs ДО sfdisk: стереть старые подписи (в т.ч. GPT) до новой
+        # разметки. После sfdisk wipefs всего диска делать НЕЛЬЗЯ — он
+        # обнуляет подпись "EFI PART" свежего GPT (разделы ядро ещё держит,
+        # но grub-установщик потом не может прочитать таблицу).
+        return [("cmd", ["wipefs", "-a", "-f", d.path], None),
+                ("cmd", ["sfdisk", "-f", d.path], script)]
 
     def _ops_mkfs(self, d) -> list:
         s = self.settings
-        ops = [("cmd", ["wipefs", "-a", "-f", d.path], None),
-               ("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
+        ops = [("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
                         part_path(d.name, 1)], None)]
         idx = 2
         if s.swap:
@@ -412,11 +416,30 @@ class Installer:
 
     def _ops_users(self) -> list:
         s = self.settings
-        ops = [("cmd", ["chroot", TARGET, "useradd", "-m", "-s", "/bin/bash",
+        ops = [("call", self._ensure_groups),
+               ("cmd", ["chroot", TARGET, "useradd", "-m", "-s", "/bin/bash",
                         "-G", USER_GROUPS, s.username], None),
                ("cmd", ["chroot", TARGET, "chpasswd"],
                 f"root:{s.password}\n{s.username}:{s.password}\n")]
         return ops
+
+    def _ensure_groups(self) -> None:
+        """Минимальная база Debian (variant=apt) не создаёт часть групп
+        (sudo, audio, video, storage, cdrom) — useradd -G на отсутствующей
+        группе падает с кодом 6. Создаём отсутствующие."""
+        missing = []
+        for g in USER_GROUPS.split(","):
+            r = subprocess.run(["chroot", TARGET, "getent", "group", g],
+                               capture_output=True, text=True)
+            if r.returncode != 0 or not r.stdout.strip():
+                missing.append(g)
+        if not missing:
+            self.log("все группы пользователя на месте")
+            return
+        self.log("создаются группы: " + " ".join(missing))
+        for g in missing:
+            subprocess.run(["chroot", TARGET, "groupadd", "-f", g],
+                           check=True)
 
     def _ops_bootloader(self) -> list:
         return [

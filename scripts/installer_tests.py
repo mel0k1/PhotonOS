@@ -108,6 +108,17 @@ plain = "\n".join(lines)
 text_cmds = [l.split("$ ", 1)[1] for l in lines if "$ " in l]
 
 check("sfdisk вызван на /dev/sda", any(c.startswith("sfdisk -f /dev/sda") for c in text_cmds))
+check("wipefs идёт ДО sfdisk (иначе он затирает GPT-подпись)",
+      next(i for i, c in enumerate(text_cmds) if c.startswith("wipefs"))
+      < next(i for i, c in enumerate(text_cmds) if c.startswith("sfdisk")))
+check("после sfdisk wipefs всего диска нет",
+      not any(c.startswith("wipefs -a -f /dev/sda")
+              for c in text_cmds[next(i for i, c in enumerate(text_cmds)
+                                      if c.startswith("sfdisk")):]))
+check("группы создаются перед useradd (call _ensure_groups)",
+      any(getattr(o[1], "__name__", "") == "_ensure_groups"
+          for k, _t, os_ in inst.steps if k == "users"
+          for o in os_ if o[0] == "call"))
 check("sfdisk: gpt + ESP + swap + linux",
       all(x in plain for x in ("label: gpt", "type=U", "type=S", "type=L")))
 check("mkfs.vfat на sda1", any(c.startswith("mkfs.vfat") and c.endswith("/dev/sda1")
