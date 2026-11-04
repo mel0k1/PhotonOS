@@ -18,6 +18,8 @@ jobs:
     name: Сборка live-ISO (Debian base)
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    permissions:
+      contents: write   # катящийся релиз «iso»: пуш тега + загрузка актива
     steps:
       - name: Checkout
         uses: actions/checkout@v4
