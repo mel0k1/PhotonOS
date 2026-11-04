@@ -5,8 +5,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# установленная компоновка: /usr/bin/photon-installer + /usr/lib/photon-install
-sys.path.insert(0, "/usr/lib/photon-install")
+# установленная компоновка: /usr/bin/photon-installer + пакет в /usr/lib
+# (в sys.path нужен РОДИТЕЛЬ пакета photon_install, не сам пакет!)
+sys.path.insert(0, "/usr/lib")
 
 from PyQt6.QtWidgets import QApplication  # noqa: E402
 
