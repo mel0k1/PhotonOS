@@ -6,7 +6,7 @@
 (док снизу, иконки 32px), значки Papirus подтягиваются отдельно (SVG).
 
 Запуск: python3 scripts/screens_lxqt.py  ->  docs/screens/*.png
-Требует PySide6 (QtSvg). Иконки Papirus: PAPIRUS_DIR (по умолчанию /tmp/papirus).
+Требует PyQt6 (QtSvg). Иконки Papirus: PAPIRUS_DIR (по умолчанию /tmp/papirus).
 """
 import os
 import sys
@@ -15,11 +15,11 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "installer"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, QRect, Qt  # noqa: E402
-from PySide6.QtGui import (QColor, QFont, QImage, QPainter, QPainterPath,  # noqa: E402
+from PyQt6.QtCore import QPoint, QRect, Qt  # noqa: E402
+from PyQt6.QtGui import (QColor, QFont, QImage, QPainter, QPainterPath,  # noqa: E402
                            QPen, QPixmap)
-from PySide6.QtSvg import QSvgRenderer  # noqa: E402
-from PySide6.QtGui import QGuiApplication  # noqa: E402
+from PyQt6.QtSvg import QSvgRenderer  # noqa: E402
+from PyQt6.QtGui import QGuiApplication  # noqa: E402
 
 QGuiApplication([])  # QPixmap требует QGuiApplication даже оффскрин
 
@@ -48,14 +48,14 @@ def svg_pix(name: str, size: int, subdir: str = "apps") -> QPixmap:
 def photon_icon(name: str, size: int, ctx: str = "apps") -> QPixmap:
     """Значок нашей темы photon (PNG из overlay)."""
     p = os.path.join(ROOT, f"overlay/usr/share/icons/photon/64x64/{ctx}/{name}.png")
-    return QPixmap(p).scaled(size, size, Qt.KeepAspectRatio,
-                             Qt.SmoothTransformation)
+    return QPixmap(p).scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio,
+                             Qt.TransformationMode.SmoothTransformation)
 
 
 def wallpaper() -> QPixmap:
     p = os.path.join(ROOT, "overlay/usr/share/backgrounds/photon-flow.jpg")
-    return QPixmap(p).scaled(W, H, Qt.KeepAspectRatioByExpanding,
-                             Qt.SmoothTransformation).copy(0, 0, W, H)
+    return QPixmap(p).scaled(W, H, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                             Qt.TransformationMode.SmoothTransformation).copy(0, 0, W, H)
 
 
 def round_rect(p: QPainter, rect: QRect, radius: int, fill: QColor,
@@ -89,7 +89,7 @@ def brand_mark(size: int) -> QPixmap:
     p = QPainter(pm)
     p.setRenderHint(QPainter.Antialiasing)
     p.setBrush(QColor(ACCENT))
-    p.setPen(Qt.NoPen)
+    p.setPen(Qt.PenStyle.NoPen)
     p.drawEllipse(0, 0, size - 1, size - 1)
     f = QFont("DejaVu Sans", int(size * 0.58))
     f.setBold(True)
@@ -206,7 +206,7 @@ def terminal_scene() -> QImage:
     round_rect(p, tb, 10, QColor("#eceff4"), None)
     p.setClipping(False)
     for i, c in enumerate(("#ff5f57", "#febc2e", "#28c840")):
-        p.setBrush(QColor(c)); p.setPen(Qt.NoPen)
+        p.setBrush(QColor(c)); p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(tx + 14 + i * 22, ty + 11, 12, 12)
     text(p, tx + 90, ty + 22, "anya@photon-pc: ~", 11, "#5c6b7a")
 
@@ -301,8 +301,8 @@ def wallpaper_scene() -> QImage:
         col, row = i % 3, i // 3
         r = QRect(gx + col * (tw + gap), gy + row * (th + gap), tw, th)
         pm = QPixmap(os.path.join(ROOT, "overlay/usr/share/backgrounds", name))
-        pm = pm.scaled(tw, th, Qt.KeepAspectRatioByExpanding,
-                       Qt.SmoothTransformation).copy(0, 0, tw, th)
+        pm = pm.scaled(tw, th, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                       Qt.TransformationMode.SmoothTransformation).copy(0, 0, tw, th)
         p.drawPixmap(r.x(), r.y(), pm)
         if i == 0:  # выбранные обои
             pen = QPen(QColor(ACCENT), 3)
@@ -349,7 +349,7 @@ def main() -> int:
         img = fn()
         # экономим вес репо: 1280x720, JPEG
         small = img.scaled(1280, 720, Qt.IgnoreAspectRatio,
-                           Qt.SmoothTransformation)
+                           Qt.TransformationMode.SmoothTransformation)
         out = os.path.join(OUT, os.path.splitext(name)[0] + ".jpg")
         small.save(out, quality=92)
         print("ok:", os.path.basename(out))

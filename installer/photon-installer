@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""PhotonOS graphical installer — точка входа."""
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# установленная компоновка: /usr/bin/photon-installer + /usr/lib/photon-install
+sys.path.insert(0, "/usr/lib/photon-install")
+
+from PyQt6.QtWidgets import QApplication  # noqa: E402
+
+from photon_install import style  # noqa: E402
+from photon_install.wizard import MainWindow  # noqa: E402
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Установщик PhotonOS")
+    ap.add_argument("--lang", choices=("ru", "en"), default=None)
+    ap.add_argument("--fake-disks", action="store_true",
+                    help="встроенный пример дисков вместо lsblk (разработка)")
+    ap.add_argument("--dev", action="store_true",
+                    help="режим разработки: без предупреждения о root")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="не выполнять команды, только печатать их в журнал")
+    args = ap.parse_args()
+
+    lang = args.lang or ("en" if (os.environ.get("LANG") or "").startswith("en") else "ru")
+    app = QApplication(sys.argv)
+    app.setApplicationName("photon-installer")
+    app.setStyleSheet(style.QSS)
+
+    warn_root = not args.dev and os.geteuid() != 0
+    win = MainWindow(lang=lang, fake_disks=args.fake_disks,
+                     warn_root=warn_root, dry_run=args.dry_run)
+    win.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

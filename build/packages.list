@@ -76,6 +76,12 @@ polkitd
 pkexec
 upower
 
+# установщик: мастер на PyQt6 + бэкенд (sfdisk, GRUB EFI в /target)
+python3-pyqt6
+fdisk
+efibootmgr
+grub-efi-amd64
+
 # инструменты сборки ISO (гостевые: isolinux, grub-efi, fat)
 isolinux
 syslinux-common
