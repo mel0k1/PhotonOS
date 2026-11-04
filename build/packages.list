@@ -77,6 +77,9 @@ pkexec
 upower
 
 # установщик: мастер на PyQt6 + бэкенд (sfdisk, GRUB EFI в /target)
+# e2fsprogs не essential — variant=apt его не ставит, а mkfs.ext4 нужен и
+# установщику, и fsck при загрузке установленной системы
+e2fsprogs
 python3-pyqt6
 fdisk
 efibootmgr
