@@ -32,10 +32,25 @@ jobs:
             debian-archive-keyring fakeroot
 
       - name: Сборка ISO
-        run: sudo -E ./build/build-iso.sh
+        run: |
+          set -o pipefail
+          sudo -E ./build/build-iso.sh 2>&1 | tee build.log
+          exit "${PIPESTATUS[0]}"
         env:
           SUITE: trixie
           MIRROR: https://deb.debian.org/debian
+
+      # При падении — лог сборки в публичную ветку ci-logs
+      # (raw.githubusercontent.com отдаёт его без авторизации)
+      - name: Диагностика: лог сборки в ветку ci-logs
+        if: failure()
+        run: |
+          git config user.email "ci@photonos.invalid"
+          git config user.name "ci-diag"
+          git checkout -B ci-logs
+          git add -f build.log
+          git commit -m "ci diag: лог сборки $GITHUB_SHA" || true
+          git push -f origin ci-logs
 
       - name: Публикация артефакта
         uses: actions/upload-artifact@v4
