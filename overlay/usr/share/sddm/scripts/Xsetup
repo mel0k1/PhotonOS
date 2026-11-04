@@ -1,0 +1,14 @@
+#!/bin/sh
+# Xsetup - run as root before the login dialog appears
+
+if [ -e /sbin/prime-offload ]; then
+    echo running NVIDIA Prime setup /sbin/prime-offload
+    /sbin/prime-offload
+fi
+
+# PhotonOS: композитор стартует ДО сессии — lxqt-panel 2.1 рисуется уже
+# в redirected-режиме. Иначе picom, присоединившийся позже, захватывает
+# окно панели с пустым буфером и панель остаётся прозрачной (гонка ~50/50
+# прогонов в TCG/q35). Перезапуск на каждый X-сервер (greeter и сессия).
+pkill -x picom 2>/dev/null
+picom --config /etc/photon/picom.conf --daemon 2>/dev/null

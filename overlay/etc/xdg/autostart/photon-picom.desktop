@@ -5,6 +5,6 @@ Name[ru]=Композитор Photon (picom)
 Comment=Shadows, translucency and blur for the Deepin-style look
 Comment[ru]=Тени, полупрозрачность и блюр для оформления в духе Deepin
 TryExec=picom
-Exec=picom --config /etc/photon/picom.conf --daemon
+Exec=/bin/sh -c "pgrep -x picom >/dev/null || picom --config /etc/photon/picom.conf --daemon"
 Terminal=false
 Categories=System;
