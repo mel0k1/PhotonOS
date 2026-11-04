@@ -1,20 +1,24 @@
 [Icon Theme]
 Name=photon
-Comment=PhotonOS: фирменные значки поверх Papirus (Корзина, Недавние документы, Файловый менеджер)
-Comment[ru]=PhotonOS: фирменные значки поверх Papirus (Корзина, Недавние документы, Файловый менеджер)
+Comment=PhotonOS: brand icons on top of Papirus (menu logo, Recent documents, File manager)
+Comment[ru]=PhotonOS: фирменные значки поверх Papirus (логотип меню, Недавние документы, Файловый менеджер). Корзина и остальное — из Papirus
 Inherits=Papirus
 
-# Растровые размеры; Papirus (SVG) отдаёт всё остальное по наследству.
-Directories=24x24/apps,24x24/places,24x24/actions,32x32/apps,32x32/places,32x32/actions,48x48/apps,48x48/places,48x48/actions,64x64/apps,64x64/places,64x64/actions,128x128/apps,128x128/places,128x128/actions,256x256/apps,256x256/places,256x256/actions
+# Растровые размеры + вектор (логотип меню). Остальное Papirus (SVG)
+# отдаёт по наследству — включая user-trash: авторская «корзинка» убрана.
+Directories=24x24/apps,24x24/actions,32x32/apps,32x32/actions,48x48/apps,48x48/actions,64x64/apps,64x64/actions,128x128/apps,128x128/actions,256x256/apps,256x256/actions,scalable/apps
+
+[scalable/apps]
+Size=48
+Scale=1
+Context=Applications
+Type=Scalable
+MinSize=8
+MaxSize=512
 
 [24x24/apps]
 Size=24
 Context=Applications
-Type=Threshold
-
-[24x24/places]
-Size=24
-Context=Places
 Type=Threshold
 
 [24x24/actions]
@@ -27,11 +31,6 @@ Size=32
 Context=Applications
 Type=Threshold
 
-[32x32/places]
-Size=32
-Context=Places
-Type=Threshold
-
 [32x32/actions]
 Size=32
 Context=Actions
@@ -40,11 +39,6 @@ Type=Threshold
 [48x48/apps]
 Size=48
 Context=Applications
-Type=Threshold
-
-[48x48/places]
-Size=48
-Context=Places
 Type=Threshold
 
 [48x48/actions]
@@ -57,11 +51,6 @@ Size=64
 Context=Applications
 Type=Threshold
 
-[64x64/places]
-Size=64
-Context=Places
-Type=Threshold
-
 [64x64/actions]
 Size=64
 Context=Actions
@@ -72,11 +61,6 @@ Size=128
 Context=Applications
 Type=Threshold
 
-[128x128/places]
-Size=128
-Context=Places
-Type=Threshold
-
 [128x128/actions]
 Size=128
 Context=Actions
@@ -85,11 +69,6 @@ Type=Threshold
 [256x256/apps]
 Size=256
 Context=Applications
-Type=Threshold
-
-[256x256/places]
-Size=256
-Context=Places
 Type=Threshold
 
 [256x256/actions]

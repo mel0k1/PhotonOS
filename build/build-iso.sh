@@ -134,6 +134,14 @@ mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
 ln -sf ../photon-diag.service \
     "$ROOTFS/etc/systemd/system/multi-user.target.wants/photon-diag.service"
 
+# декорации openbox в тон Onyxian-Rounded (Arc-Dark из arc-theme):
+# патчим системный rc.xml — openbox берёт его как fallback, пока у юзера
+# нет своего ~/.config/openbox/lxqt-rc.xml
+if [ -f "$ROOTFS/etc/xdg/openbox/rc.xml" ]; then
+    sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Arc-Dark</name>|' \
+        "$ROOTFS/etc/xdg/openbox/rc.xml"
+fi
+
 # PipeWire для всех пользователей: глобальные user-юниты (локальный enable
 # юзера live-config не применяет пресеты — иконка звука оставалась красной)
 mkdir -p "$ROOTFS/etc/systemd/user/sockets.target.wants" \

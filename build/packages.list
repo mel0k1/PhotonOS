@@ -47,11 +47,15 @@ network-manager-gnome
 ca-certificates
 curl
 
-# оформление: плоский светлый стиль, тени/полупрозрачность
+# оформление: LXQt-тема Onyxian-Rounded идёт оверлеем (/usr/share/lxqt/themes),
+# Kvantum — движок виджетов (Orchis вендорится оверлеем в /usr/share/Kvantum)
 papirus-icon-theme
 arc-theme
 qt6ct
+qt6-style-kvantum
 lxqt-themes
+# X-диагностика live-сессии (xwininfo/xdpyinfo) — серийная отладка
+x11-utils
 
 # шрифты
 fonts-noto-core

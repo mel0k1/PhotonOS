@@ -5,9 +5,13 @@
 Результат: overlay/usr/share/icons/photon/ — тема, наследующая Papirus.
 
 Соответствие артов и значков:
-  trash.png  -> user-trash, user-trash-full   (Корзина)
   clock.png  -> document-open-recent          (Недавние документы)
   folder.png -> system-file-manager           (Файловый менеджер PCManFM-Qt)
+
+Корзина (user-trash) больше НЕ переопределяется: авторский арт был
+неудачным — работает значок Papirus по наследованию. Логотип меню —
+не арт, а рукописный SVG (scalable/apps/start-here-photon.svg и алиасы);
+растровые start-here-photon.png делает scripts/make_menu_icon.py.
 
 Требуется Pillow (на хосте разработки, не в ISO): python3 -m pip install pillow
 """
@@ -30,12 +34,11 @@ SIZES = (24, 32, 48, 64, 128, 256)
 
 # арт -> список (контекст, имя значка)
 MAP = {
-    "trash.png":  [("places", "user-trash"), ("places", "user-trash-full")],
     "clock.png":  [("actions", "document-open-recent")],
     "folder.png": [("apps", "system-file-manager")],
 }
 
-CONTEXTS = ("apps", "places", "actions")
+CONTEXTS = ("apps", "actions")
 
 
 def strip_background(im: Image.Image) -> Image.Image:
