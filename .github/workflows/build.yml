@@ -42,7 +42,7 @@ jobs:
 
       # При падении — лог сборки в публичную ветку ci-logs
       # (raw.githubusercontent.com отдаёт его без авторизации)
-      - name: Диагностика: лог сборки в ветку ci-logs
+      - name: "Диагностика: лог сборки в ветку ci-logs"
         if: failure()
         run: |
           git config user.email "ci@photonos.invalid"
