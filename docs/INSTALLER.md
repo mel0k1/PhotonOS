@@ -105,7 +105,7 @@ installer/
 └── photon-installer.desktop  # ярлык в live-сессии (pkexec)
 ```
 
-В ISO ставится `build/build-iso.sh`: модуль в `/usr/lib/photon-install`,
+В ISO ставится `build/build-iso.sh`: модуль в `/usr/lib/photon_install`,
 точка входа в `/usr/bin/photon-installer`, ярлык в
 `/usr/share/applications/photon-installer.desktop`.
 

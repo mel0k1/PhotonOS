@@ -207,12 +207,12 @@ install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 
 # установщик: мастер (PyQt6) + бэкенд — доступны из live-сессии
 log "установщик PhotonOS: мастер и бэкенд"
-mkdir -p "$ROOTFS/usr/lib/photon-install"
-cp -a "$ROOT/installer/photon_install/." "$ROOTFS/usr/lib/photon-install/"
+mkdir -p "$ROOTFS/usr/lib/photon_install"
+cp -a "$ROOT/installer/photon_install/." "$ROOTFS/usr/lib/photon_install/"
 install -m0755 "$ROOT/installer/photon-installer" "$ROOTFS/usr/bin/photon-installer"
 install -m0644 "$ROOT/installer/photon-installer.desktop" \
     "$ROOTFS/usr/share/applications/photon-installer.desktop"
-find "$ROOTFS/usr/lib/photon-install" -type d -name '__pycache__' \
+find "$ROOTFS/usr/lib/photon_install" -type d -name '__pycache__' \
     -prune -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
