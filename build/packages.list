@@ -53,10 +53,10 @@ papirus-icon-theme
 arc-theme
 qt6ct
 qt6-style-kvantum
-# SVG-плагины Qt6 (imageformats/libqsvg + iconengines/libqsvgicon): без
-# iconengines QIcon не читает SVG-темы — Papirus (трей, меню) и SVG-иконки
-# пустые; в trixie libqt6svg6 содержит только библиотеку
-qt6-svg-plugins
+# ВНИМАНИЕ: qt6-svg-plugins (imageformats/libqsvg + iconengines) откатили:
+# с ним lxqt-panel в TCG-окружении стартует окном 1x1 и не отрисовывается
+# (3 прогона подряд; без пакета — панель живая). SVG-иконки меню мы и так
+# не используем: кнопка меню — PNG (64x64 start-here-photon.png).
 lxqt-themes
 # управление GUI из серийной консоли (клики/клавиатура по X) — автотесты
 xdotool
