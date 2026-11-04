@@ -53,6 +53,18 @@ Debian**: только база, наш рабочий стол и наш бре
 шаблоны DDE и Hyprland-стека) — эта линия закрыта, вся обвязка удалена;
 в git-истории осталась.
 
+## Скриншоты
+
+Кадры из live-образа (QEMU, Debian trixie, LXQt 2.1 + picom):
+
+![Меню загрузчика PhotonOS](docs/screens/grub.png)
+
+![Рабочий стол PhotonOS — панель-док с фирменным логотипом, часы, трей](docs/screens/desktop.png)
+
+| Меню приложений | photon-fetch в qterminal |
+| --- | --- |
+| ![Меню приложений PhotonOS](docs/screens/menu.png) | ![photon-fetch в qterminal](docs/screens/terminal.png) |
+
 ## Состав репозитория
 
 ```text
