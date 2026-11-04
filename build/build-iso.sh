@@ -93,6 +93,9 @@ insmod png
 insmod gfxterm
 terminal_output gfxterm
 background_image (memdisk)/boot/grub/bg.png
+# grub-mkstandalone грузится с префиксом (memdisk): без поиска корня
+# /live/vmlinuz ищется в memdisk и не находится ("file not found")
+search --no-floppy --set=root --file /live/vmlinuz
 menuentry "PhotonOS Live" {
     linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
     initrd /live/initrd
