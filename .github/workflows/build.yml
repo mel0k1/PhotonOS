@@ -42,3 +42,20 @@ jobs:
           path: dist/*.iso
           if-no-files-found: error
           retention-days: 14
+
+      # Катящийся релиз «iso»: последняя сборка всегда лежит публично
+      # (релизы качаются без авторизации, в отличие от артефактов).
+      - name: Публикация в rolling-релиз «iso»
+        if: github.ref == 'refs/heads/debian'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          TAG=iso
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          git tag -f "$TAG" "$GITHUB_SHA" 2>/dev/null || true
+          git push -f origin "$TAG" || true
+          gh release create "$TAG" "$ISO" \
+            --title "PhotonOS live ISO (rolling)" \
+            --notes "Последняя сборка ветки debian от $GITHUB_SHA.
+Файл: $(basename "$ISO"). Качайте актив из релиза."

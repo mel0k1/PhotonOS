@@ -33,8 +33,27 @@ OUT="$OUT_DIR/PhotonOS-live-$ARCH-$STAMP.iso"
 mkdir -p "$OUT_DIR" "$WORK"
 ROOTFS="$WORK/rootfs"
 ISO="$WORK/iso"
-rm -rf "$ROOTFS" "$ISO"
-mkdir -p "$ROOTFS" "$ISO"
+
+# Возобновляемость: маркер ставится после mmdebstrap+хуков. Повторный запуск
+# пропускает bootstrap-фазу (apt докачивает пакеты в кэш rootfs) — удобно
+# для длинных сборок на медленных хостах.
+if [ -f "$ROOTFS/.photon-rootfs-done" ]; then
+    log "resume: rootfs уже готов — пропускаю mmdebstrap"
+    SKIP_ROOTFS=1
+else
+    SKIP_ROOTFS=0
+    # кэш скачанных deb переживает wipe (докачка после обрыва)
+    if [ -d "$ROOTFS/var/cache/apt/archives" ]; then
+        rm -rf "$WORK/apt-cache-keep"
+        mv "$ROOTFS/var/cache/apt/archives" "$WORK/apt-cache-keep"
+    fi
+    rm -rf "$ROOTFS" "$ISO"
+    mkdir -p "$ROOTFS" "$ISO"
+    if [ -d "$WORK/apt-cache-keep" ]; then
+        mkdir -p "$ROOTFS/var/cache/apt"
+        mv "$WORK/apt-cache-keep" "$ROOTFS/var/cache/apt/archives"
+    fi
+fi
 
 # ------------------------------------------------------- 1. хук кастомизации
 # ВАЖНО: mmdebstrap исполняет customize-хук НА ХОСТЕ (без chroot), передавая
@@ -95,8 +114,30 @@ EOS
 chmod +x "$HOOK"
 
 log "mmdebstrap: корень Debian $SUITE + пакеты PhotonOS"
+if [ "$SKIP_ROOTFS" = "1" ]; then
+    log "resume: фаза mmdebstrap пропущена"
+else
+# MMDEBSTRAP_MODE — авто-выбор; на непривилегированных хостах/CI-раннерах
+# с урезанным seccomp (нет devpts/proc/mknod в userns) помогает
+# MMDEBSTRAP_MODE=fakechroot; MMDEBSTRAP_EXTRA_ARGS — прочие флаги.
+# PHOTON_CHROOT_SHIM — путь к шиму chroot для fakechroot-режима: он
+# инжектируется в rootfs после распаковки (mmdebstrap ищет chroot
+# по PATH из корня — в rootfs нет пакета chroot).
+# Аргументы собираем через set -- — значения с пробелами остаются одним argv.
+set --
+if [ -n "${PHOTON_CHROOT_SHIM:-}" ] && [ "$MMDEBSTRAP_MODE" = "fakechroot" ]; then
+    set -- "$@" --extract-hook \
+        "cp $PHOTON_CHROOT_SHIM \$1/usr/sbin/chroot"
+    if [ -n "${PHOTON_PRESEED:-}" ]; then
+        set -- "$@" --extract-hook "$PHOTON_PRESEED \$1"
+    fi
+fi
+for a in ${MMDEBSTRAP_EXTRA_ARGS:-}; do
+    set -- "$@" "$a"
+done
 mmdebstrap \
-    --mode=auto \
+    --mode="${MMDEBSTRAP_MODE:-auto}" \
+    "$@" \
     --variant=apt \
     --architectures="$ARCH" \
     --aptopt='Acquire::Retries "3"' \
@@ -110,6 +151,8 @@ mmdebstrap \
     --customize-hook="copy-in $ROOT/design/boot/bg.png /root" \
     --customize="$HOOK" \
     "$SUITE" "$ROOTFS" "$MIRROR"
+touch "$ROOTFS/.photon-rootfs-done"
+fi
 
 # EFI-загрузчик лежит в rootfs/root (tmp mmdebstrap вычищает сам)
 log "загрузчики: перенос bootx64.efi"
@@ -177,7 +220,7 @@ mkdir -p "$ISO/live"
 cp "$ROOTFS"/boot/vmlinuz-* "$ISO/live/vmlinuz"
 cp "$ROOTFS"/boot/initrd.img-* "$ISO/live/initrd"
 mksquashfs "$ROOTFS" "$ISO/live/filesystem.squashfs" \
-    -comp xz -b 1M -noappend -e boot
+    -comp xz -b 1M -noappend -e boot -e .photon-rootfs-done
 
 # --------------------------------------------------------- 4. загрузчики
 log "загрузчики: isolinux (BIOS) + bootx64.efi (EFI)"
