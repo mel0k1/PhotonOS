@@ -62,8 +62,9 @@ fi
 # initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 
-# сервисы: дисплейный менеджер и сеть
-systemctl enable sddm.service NetworkManager.service photon-diag.service 2>/dev/null || true
+# сервисы: дисплейный менеджер и сеть; zram/earlyoom - слабые ПК
+systemctl enable sddm.service NetworkManager.service photon-diag.service \
+    zramswap.service earlyoom.service 2>/dev/null || true
 
 # EFI-загрузчик со встроенным конфигом (bg.png кладёт предыдущий хук);
 # пишем в /root - mmdebstrap вычищает /tmp чрута.

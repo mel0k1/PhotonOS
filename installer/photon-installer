@@ -9,11 +9,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # (в sys.path нужен РОДИТЕЛЬ пакета photon_install, не сам пакет!)
 sys.path.insert(0, "/usr/lib")
 
-from PyQt6.QtWidgets import QApplication  # noqa: E402
-
-from photon_install import style  # noqa: E402
-from photon_install.wizard import MainWindow  # noqa: E402
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Установщик PhotonOS")
@@ -24,7 +19,19 @@ def main() -> int:
                     help="режим разработки: без предупреждения о root")
     ap.add_argument("--dry-run", action="store_true",
                     help="не выполнять команды, только печатать их в журнал")
+    ap.add_argument("--auto", nargs="?", const="", metavar="CONF",
+                    help="автоустановка без GUI: путь к photon-auto.conf "
+                         "(без значения - поиск на live-носителе)")
     args = ap.parse_args()
+
+    if args.auto is not None:
+        # до импортов Qt: --auto должен работать и без X, и без PyQt6
+        from photon_install.auto import run_auto
+        return run_auto(args.auto)
+
+    from PyQt6.QtWidgets import QApplication  # noqa: E402
+    from photon_install import style  # noqa: E402
+    from photon_install.wizard import MainWindow  # noqa: E402
 
     lang = args.lang or ("en" if (os.environ.get("LANG") or "").startswith("en") else "ru")
     app = QApplication(sys.argv)

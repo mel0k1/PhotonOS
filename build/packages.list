@@ -111,6 +111,11 @@ claws-mail
 rsync
 featherpad
 
+# слабые ПК: earlyoom убивает зависший процесс до OOM-зависания,
+# zram сжимает память; их настройка - оверлеем (etc/default, etc/sysctl.d)
+earlyoom
+zram-tools
+
 # установщик: PyQt6-мастер + бэкенд (sfdisk, GRUB EFI в /target);
 # e2fsprogs не essential, а mkfs.ext4 нужен установщику и fsck
 e2fsprogs

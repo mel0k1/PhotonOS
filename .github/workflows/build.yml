@@ -41,6 +41,14 @@ jobs:
           SUITE: trixie
           MIRROR: https://deb.debian.org/debian
 
+      # метрика слабых ПК: ISO для флешки/старого ноутбука не должен распухать
+      - name: Контроль размера ISO (предел 2500 МБ)
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          MB=$(du -m "$ISO" | cut -f1)
+          echo "ISO: ${MB} МБ (предел 2500)"
+          [ "$MB" -le 2500 ] || { echo "ISO вырос за 2500 МБ - пересмотреть packages.list"; exit 1; }
+
       # Катящийся релиз «iso»: последняя сборка всегда публична + build.log
       - name: "Публикация rolling-релиза «iso» (ISO + лог сборки)"
         if: always()
@@ -103,6 +111,11 @@ jobs:
           L=$(unsquashfs -l /tmp/fs.sqfs)
           for f in usr/bin/photon-installer \
                    usr/lib/photon_install \
+                   usr/bin/photon-welcome \
+                   usr/bin/photon-backup \
+                   usr/lib/photon_welcome \
+                   etc/default/zramswap \
+                   etc/sysctl.d/99-photon-zram.conf \
                    usr/share/lxqt/themes/Onyxian-Rounded/lxqt-panel.qss \
                    usr/share/backgrounds/photon-ribbon.jpg \
                    usr/share/backgrounds/photon-flow.jpg; do

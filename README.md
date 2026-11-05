@@ -43,6 +43,8 @@
   сетевых принтеров; почта - Claws Mail.
 - photon-welcome - окно первого входа (обновления, принтеры, копия, почта);
   photon-backup - rsync-копия домашнего каталога по ежедневному таймеру.
+- Для слабых ПК - zram (zstd, половина RAM) и earlyoom; для ноутбука -
+  сон по закрытию крышки (logind) и энергосбережение LXQt.
 - Русский UI по умолчанию, обои photon-ribbon.
 - Загрузка - plymouth-тема photon-boot: чёрный квадрат с глазами собирается
   кадр за кадром.
@@ -72,7 +74,7 @@ PhotonOS/
 │   └── packages.list       # пакеты live-образа (Debian trixie)
 ├── branding/plymouth/photon-boot/  # тема загрузки (кадры анимации)
 ├── overlay/                # файлы в корень образа: LXQt, обои, иконки, брендинг
-├── installer/              # мастер установки (PyQt6) + бэкенд
+├── installer/              # мастер установки (PyQt6) + бэкенд + --auto
 ├── welcome/                # photon-welcome: окно первого входа (PyQt6)
 ├── backup/photon-backup    # rsync-копия $HOME (CLI + таймер)
 ├── ppm/ppm                 # Photon Package Manager (порт на apt в работе)
@@ -90,12 +92,32 @@ apt install mmdebstrap squashfs-tools xorriso mtools dosfstools
 ./build/build-iso.sh          # результат: dist/PhotonOS-live-amd64-<дата>.iso
 ```
 
+## Автоустановка
+
+`photon-auto.conf` в корне live-носителя + команда `photon-installer --auto`
+в live-сессии - установка на весь диск без вопросов (лог в консоль):
+
+```ini
+DISK=/dev/sda
+USERNAME=user
+PASSWORD=change-me
+FULLNAME=User
+HOSTNAME=photon
+TZ=Europe/Moscow
+LOCALE=ru
+SWAP=yes
+DE=lxqt
+MAIL=yes
+REBOOT=yes
+```
+
 ## Планы
 
 - [ ] ppm: порт с XBPS на apt
 - [ ] Установщик на диск - отладка мастера
 - [x] Фирменные приложения: photon-welcome, photon-backup
 - [ ] Фирменные приложения: следующий раунд
+- [x] Слабые ПК: zram, earlyoom, CI-метрики RAM/ISO, автоустановка --auto
 
 ## Лицензия
 

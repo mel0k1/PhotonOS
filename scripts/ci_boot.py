@@ -25,6 +25,12 @@ MARKER_DEFAULT = r"===== photon-diag"
 # «Reached target Graphical» до serial не доходит (plymouth глушит консоль);
 # photon-diag пишет в ttyS0 сразу после multi-user - маркер обоих режимов
 DIAG_LXQT = re.compile(rb"(?m)^\d+\s+lxqt-session\b")
+# метрика слабых ПК из diag.sh: free -m после выхода на десктоп
+MEM_RE = re.compile(rb"photon-mem total=(\d+) used=(\d+) avail=(\d+)")
+# RAM десктопа: цель 500 МБ, жёсткий предел CI - 800 (регресс распухания)
+MEM_TARGET_MB = 500
+MEM_FAIL_MB = 800
+
 OVMF_CANDIDATES = (
     "/usr/share/ovmf/OVMF.fd",
     "/usr/share/OVMF/OVMF.fd",
@@ -387,6 +393,20 @@ def main():
                 time.sleep(4)
 
             result["diag_lxqt_session"] = bool(watcher.diag_ok.is_set())
+
+            # метрика слабых ПК: последний photon-mem из телеметрии
+            mems = MEM_RE.findall(watcher.text())
+            mem_fail = False
+            if mems:
+                total, used, avail = (int(x) for x in mems[-1])
+                result["mem_total_mb"] = total
+                result["mem_used_mb"] = used
+                result["mem_avail_mb"] = avail
+                result["mem_target_mb"] = MEM_TARGET_MB
+                mem_fail = used > MEM_FAIL_MB
+                log(f"RAM десктопа: used {used} МБ "
+                    f"(цель <= {MEM_TARGET_MB}, fail > {MEM_FAIL_MB})")
+
             result["best_shot"] = (os.path.basename(best["path"])
                                    if best["path"] else None)
             result["best_mean"] = round(best["mean"], 4)
@@ -394,13 +414,14 @@ def main():
             pix_ok = best["mean"] > 0.03 and best["bright"] > 0.004
             result["pixel_ok"] = pix_ok
             ok = (watcher.diag_ok.is_set() and pix_ok
-                  and best["path"] is not None)
+                  and best["path"] is not None and not mem_fail)
             result["verdict"] = "PASS" if ok else "FAIL"
             if not ok:
                 result["why"] = (
                     f"diag_lxqt={watcher.diag_ok.is_set()} "
                     f"pixel_ok={pix_ok} mean={best['mean']:.3f} "
-                    f"bright={best['bright']:.4f}")
+                    f"bright={best['bright']:.4f}"
+                    + (f" mem_used>{MEM_FAIL_MB}МБ" if mem_fail else ""))
 
         if result.get("verdict") == "PASS":
             # лучший кадр — в корень outdir

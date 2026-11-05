@@ -111,10 +111,14 @@ class MainWindow(QMainWindow):
         bkp.clicked.connect(lambda: self._run(["qterminal", "-e", "photon-backup"]))
         mail = _button("Почта", "Claws Mail уже настроен для первого запуска")
         mail.clicked.connect(lambda: self._run(["claws-mail"]))
+        pwr = _button("Энергосбережение",
+                      "сон, яркость, закрытие крышки ноутбука")
+        pwr.clicked.connect(lambda: self._run(["lxqt-config-powermanagement"]))
         grid.addWidget(up, 0, 0)
         grid.addWidget(prn, 0, 1)
         grid.addWidget(bkp, 1, 0)
         grid.addWidget(mail, 1, 1)
+        grid.addWidget(pwr, 2, 0)
         root.addLayout(grid)
 
         root.addStretch(1)

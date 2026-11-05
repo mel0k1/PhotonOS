@@ -13,6 +13,9 @@ while :; do
         pgrep -a Xorg | head -2 || echo "Xorg: нет"
         echo "--- skel в /home/anon ---"
         ls /home/anon/.config/lxqt/ 2>&1 | head -6
+        echo "--- память (МБ) ---"
+        # парсится в scripts/ci_boot.py: photon-mem total= used= avail=
+        free -m | awk 'NR==2 {printf "photon-mem total=%s used=%s avail=%s\n", $2, $3, $7}'
         echo "--- sddm.log tail ---"
         tail -n 25 /var/log/sddm.log 2>&1
         echo "===== end photon-diag ====="
