@@ -71,3 +71,64 @@ jobs:
           path: dist/*.iso
           if-no-files-found: error
           retention-days: 14
+
+  # ------------------------------------------------------------- smoke-тест
+  # Загружаем собранный ISO в QEMU (TCG, headless) в двух режимах — BIOS и
+  # EFI (OVMF) — снимаем скриншоты через QMP и проверяем, что рабочий стол
+  # реально отрисовался: serial-маркер systemd + телеметрия photon-diag
+  # (PID lxqt-session) + ненулевая яркость кадров. Артефакт photon-smoke:
+  # скриншоты (shots/), serial.log, result.json, best.png на каждый режим.
+  smoke:
+    name: Smoke-test QEMU (BIOS + EFI/OVMF), скриншоты
+    needs: iso
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    continue-on-error: true   # обкатка: рантайм-тест не ломает статус сборки
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ISO из сборки
+        uses: actions/download-artifact@v4
+        with:
+          name: PhotonOS-live-amd64
+          path: dist
+
+      - name: Инструменты
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 ovmf squashfs-tools xorriso imagemagick
+
+      - name: Санс-чек содержимого squashfs
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          xorriso -osirrox on -indev "$ISO" \
+            -extract /live/filesystem.squashfs /tmp/fs.sqfs >/dev/null
+          L=$(unsquashfs -l /tmp/fs.sqfs)
+          for f in usr/bin/photon-installer \
+                   usr/lib/photon_install \
+                   usr/share/lxqt/themes/Onyxian-Rounded/lxqt-panel.qss \
+                   usr/share/backgrounds/photon-flow.jpg; do
+            echo "$L" | grep -q "$f" || { echo "НЕТ: $f"; exit 1; }
+            echo "ок: $f"
+          done
+
+      - name: Загрузка BIOS + скриншоты
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          python3 scripts/ci_boot.py --iso "$ISO" --mode bios --outdir out/bios
+
+      - name: Загрузка EFI (OVMF) + скриншоты
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          python3 scripts/ci_boot.py --iso "$ISO" --mode efi --outdir out/efi
+
+      - name: "Артефакты: скриншоты и логи"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: photon-smoke
+          path: out/
+          if-no-files-found: warn
+          retention-days: 14
