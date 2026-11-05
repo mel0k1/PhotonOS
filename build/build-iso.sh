@@ -186,6 +186,9 @@ ln -sf ../photon-backup.timer \
 
 install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 
+# ppm - обёртка над apt: единый вход для установки/обновления
+install -m0755 "$ROOT/ppm/ppm" "$ROOTFS/usr/bin/ppm"
+
 # установщик: мастер (PyQt6) + бэкенд — доступны из live-сессии
 log "установщик PhotonOS: мастер и бэкенд"
 mkdir -p "$ROOTFS/usr/lib/photon_install"

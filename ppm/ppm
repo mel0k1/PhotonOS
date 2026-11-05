@@ -1,8 +1,8 @@
 #!/bin/sh
-# ppm - Photon Package Manager (обёртка над XBPS; порт на apt в работе).
+# ppm - Photon Package Manager (обёртка над apt).
 # Лицензия: GPL-3.0+. Подробности: docs/PPM.md
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 # ---------- вывод ----------
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -21,15 +21,15 @@ else
     C_OFF=''
 fi
 
-# служебные сообщения идут в stderr: stdout остаётся чистым для xbps
+# служебные сообщения идут в stderr: stdout остаётся чистым для apt
 msg()  { printf '%b==> %b%s%b\n' "$C_ICON" "$C_TXT" "$1" "$C_OFF" >&2; }
 warn() { printf '%b>> %s%b\n' "$C_WARN" "$1" "$C_OFF" >&2; }
 die()  { printf '%b!! %s%b\n' "$C_ERR" "$1" "$C_OFF" >&2; exit 1; }
 
 # ---------- проверки ----------
-need_xbps() {
-    command -v xbps-install >/dev/null 2>&1 \
-        || die "ppm работает на системах с XBPS (PhotonOS / Void Linux)"
+need_apt() {
+    command -v apt-get >/dev/null 2>&1 \
+        || die "ppm работает на системах с apt (PhotonOS / Debian)"
 }
 
 need_root() {
@@ -65,15 +65,15 @@ ART
 usage() {
     print_art
     cat <<EOF
-  ppm $VERSION — Photon Package Manager (обёртка над XBPS)
+  ppm $VERSION — Photon Package Manager (обёртка над apt)
 
   Использование: ppm <команда> [аргументы]
 
   Команды:
-    install <пакеты>  установить пакеты             -> xbps-install -S
-    remove  <пакеты>  удалить пакеты и зависимости  -> xbps-remove -R
-    search  <запрос>  искать по репозиториям        -> xbps-query -Rs
-    info    <пакет>   подробности о пакете          -> xbps-query -R
+    install <пакеты>  установить пакеты             -> apt-get install
+    remove  <пакеты>  удалить пакеты и сироты       -> apt-get remove + autoremove
+    search  <запрос>  искать по репозиториям        -> apt-cache search
+    info    <пакет>   подробности о пакете          -> apt-cache show
     sync              синхронизировать индексы репозиториев
     update            обновить систему целиком
     autoremove        удалить пакеты-сироты
@@ -83,11 +83,11 @@ usage() {
     help              эта справка
 
   Синонимы: i=install  r=remove  s=search  up=update
-  Аргументы передаются xbps как есть: ppm install -y firefox
+  Аргументы передаются apt как есть: ppm install -t trixie-backports firefox
 
   Примеры:
     ppm sync && ppm update
-    ppm install firefox noto-fonts-ttf
+    ppm install firefox fonts-noto-core
     ppm search terminal
 EOF
 }
@@ -95,7 +95,7 @@ EOF
 about() {
     print_art
     printf '  ppm %s — Photon Package Manager\n' "$VERSION"
-    printf '  PhotonOS | Void Linux (glibc) + runit | лицензия GPL-3.0\n'
+    printf '  PhotonOS | Debian (apt) | лицензия GPL-3.0\n'
     printf '  https://github.com/mel0k1/PhotonOS\n'
 }
 
@@ -106,64 +106,69 @@ shift
 
 case "$CMD" in
     install|i)
-        need_xbps
+        need_apt
         need_root install
         [ $# -ge 1 ] || die "укажи пакеты: ppm install <пакеты>"
+        msg "обновляю индексы репозиториев"
+        apt-get update || warn "индексы не обновились — ставлю из локального кэша"
         msg "устанавливаю: $*"
-        xbps-install -S "$@"
+        apt-get install "$@"
         exit $?
         ;;
     remove|r|rm)
-        need_xbps
+        need_apt
         need_root remove
         [ $# -ge 1 ] || die "укажи пакеты: ppm remove <пакеты>"
         msg "удаляю: $*"
-        xbps-remove -R "$@"
+        apt-get remove "$@" || exit $?
+        msg "убираю пакеты-сироты"
+        apt-get autoremove
         exit $?
         ;;
     search|s)
-        need_xbps
+        need_apt
         [ $# -ge 1 ] || die "укажи запрос: ppm search <запрос>"
-        xbps-query -Rs "$@"
+        apt-cache search "$@"
         exit $?
         ;;
     info)
-        need_xbps
+        need_apt
         [ $# -ge 1 ] || die "укажи пакет: ppm info <пакет>"
-        xbps-query -R "$@"
+        apt-cache show "$@"
         exit $?
         ;;
     sync)
-        need_xbps
+        need_apt
         need_root sync
         msg "синхронизирую индексы репозиториев"
-        xbps-install -S
+        apt-get update
         exit $?
         ;;
     update|upgrade|up)
-        need_xbps
+        need_apt
         need_root update
         msg "обновляю систему"
-        xbps-install -Su
+        apt-get update && apt-get full-upgrade
         exit $?
         ;;
     autoremove)
-        need_xbps
+        need_apt
         need_root autoremove
         msg "удаляю пакеты-сироты"
-        xbps-remove -O
+        apt-get autoremove
         exit $?
         ;;
     clean)
-        need_xbps
+        need_apt
         need_root clean
         msg "очищаю кэш скачанных пакетов"
-        xbps-remove -m
+        apt-get clean
         exit $?
         ;;
     list|ls)
-        need_xbps
-        xbps-query -l
+        need_apt
+        dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\t${Version}\n' \
+            | grep '^ii '
         exit $?
         ;;
     about|version|-v|--version)

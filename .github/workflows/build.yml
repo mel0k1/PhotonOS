@@ -113,6 +113,8 @@ jobs:
                    usr/lib/photon_install \
                    usr/bin/photon-welcome \
                    usr/bin/photon-backup \
+                   usr/bin/photon-fetch \
+                   usr/bin/ppm \
                    usr/lib/photon_welcome \
                    etc/default/zramswap \
                    etc/sysctl.d/99-photon-zram.conf \

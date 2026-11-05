@@ -77,7 +77,7 @@ PhotonOS/
 ├── installer/              # мастер установки (PyQt6) + бэкенд + --auto
 ├── welcome/                # photon-welcome: окно первого входа (PyQt6)
 ├── backup/photon-backup    # rsync-копия $HOME (CLI + таймер)
-├── ppm/ppm                 # Photon Package Manager (порт на apt в работе)
+├── ppm/ppm                 # Photon Package Manager (обёртка над apt)
 ├── fetch/photon-fetch      # ASCII-сводка о системе
 ├── scripts/                # CI-тесты и генераторы графики
 └── .github/workflows/      # CI: сборка ISO + smoke-тест
@@ -113,11 +113,11 @@ REBOOT=yes
 
 ## Планы
 
-- [ ] ppm: порт с XBPS на apt
 - [ ] Установщик на диск - отладка мастера
 - [x] Фирменные приложения: photon-welcome, photon-backup
 - [ ] Фирменные приложения: следующий раунд
 - [x] Слабые ПК: zram, earlyoom, CI-метрики RAM/ISO, автоустановка --auto
+- [x] ppm: порт на apt (входит в образ)
 
 ## Лицензия
 
