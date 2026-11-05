@@ -55,15 +55,19 @@ Debian**: только база, наш рабочий стол и наш бре
 
 ## Скриншоты
 
-Кадры из live-образа (QEMU, Debian trixie, LXQt 2.1 + picom):
+Кадры из live-образа (QEMU, Debian trixie, LXQt 2.1 + picom, тема
+Onyxian-Rounded + Kvantum Orchis-solidDark):
 
 ![Меню загрузчика PhotonOS](docs/screens/grub.png)
 
-![Рабочий стол PhotonOS — панель-док с фирменным логотипом, часы, трей](docs/screens/desktop.png)
+![Рабочий стол PhotonOS — Onyxian-Rounded: плавающая панель-док, куб-меню, часы, трей](docs/screens/desktop.png)
 
-| Меню приложений | photon-fetch в qterminal |
-| --- | --- |
-| ![Меню приложений PhotonOS](docs/screens/menu.png) | ![photon-fetch в qterminal](docs/screens/terminal.png) |
+![Тот же рабочий стол при EFI-загрузке (OVMF)](docs/screens/efi.png)
+
+Загрузка в обоих режимах (BIOS isolinux и EFI OVMF) проверяется
+автоматически в CI: smoke-тест грузит ISO в QEMU, снимает скриншоты
+через QMP, ждёт телеметрии photon-diag (PID lxqt-session) и проверяет,
+что кадры не чёрные.
 
 ## Состав репозитория
 
@@ -96,17 +100,20 @@ apt install mmdebstrap squashfs-tools xorriso mtools dosfstools
 ./build/build-iso.sh          # результат: dist/PhotonOS-live-amd64-<дата>.iso
 ```
 
-CI собирает ISO на каждый push в `main` — образ доступен артефактом сборки
-(вкладка Actions). Загрузка: BIOS (isolinux) и EFI (grub), live-пользователь
-`user` с паролем `live` (стандарт Debian live).
+CI собирает ISO на каждый push в `debian`/`main` (плюс катящийся релиз
+«iso» — последний образ всегда доступен публично) и сразу прогоняет
+smoke-тест: загрузка ISO в QEMU в BIOS и EFI (OVMF) режимах со
+скриншотами и serial-диагностикой. Live-сессия: автологин под
+пользователем `anon` без пароля.
 
 ## Сборка из исходников — планы
 
 - [x] Перевод на базу Debian, минимизация
 - [x] Фирменная загрузка photon-boot и логотип
-- [x] LXQt в духе Deepin
+- [x] LXQt + тема Onyxian-Rounded (Kvantum Orchis-solidDark)
+- [x] EFI-загрузка (grub-mkstandalone + El Torito, проверена с OVMF в CI)
 - [ ] ppm: порт с XBPS на apt
-- [ ] Установщик на диск (порт с Void-версии)
+- [ ] Установщик на диск (PyQt6, Debian-порт — отлаживается)
 - [ ] Фирменные приложения
 
 ## Лицензия
