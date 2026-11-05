@@ -2,27 +2,13 @@
 """CI smoke-test PhotonOS: загрузка live-ISO в QEMU (TCG, headless) со
 скриншотами через QMP и serial-диагностикой.
 
-Использование:
-    python3 ci_boot.py --iso dist/PhotonOS-live-amd64-YYYYMMDD.iso \
-        --mode bios --outdir out/bios
+    python3 ci_boot.py --iso dist/PhotonOS-...iso --mode bios --outdir out/bios
     python3 ci_boot.py --iso ... --mode efi --outdir out/efi   # OVMF
 
-Что делает:
-  1. Стартует qemu-system-x86_64: q35, TCG, 2G RAM, cdrom=ISO, serial через
-     unix-chardev (в лог), QMP-сокет для команд.
-  2. Ждёт маркер загрузки в serial (по умолчанию «Reached target Graphical
-     Interface» от systemd на console=ttyS0).
-  3. После маркера каждые 20с снимает скриншоты (screendump, формат png —
-     с фолбэком на ppm+ImageMagick) и ждёт телеметрии photon-diag
-     («PID lxqt-session» в serial) — признак живой LXQt-сессии.
-  4. Проверяет, что скриншоты содержат изображение (средняя яркость и доля
-     ярких пикселей), а не чёрный экран.
-  5. Через serial-шелл (autologin anon) выполняет диагностические команды
-     (systemctl --failed, pgrep панелей) — вывод в serial.log.
-  6. Пишет result.json; код возврата 0 = PASS, 3 = FAIL.
-
-QEMU: формат скриндампа png доступен с 7.1 (ubuntu-latest имеет 8.x);
-для старых версий — фолбэк ppm + convert (ImageMagick).
+Ждёт маркер photon-diag в serial, снимает скриншоты (png; старый QEMU -
+фолбэк ppm+convert), проверяет не-чёрные кадры и живую LXQt-сессию,
+прогоняет диагностику через serial-шелл (autologin anon).
+result.json: 0 = PASS, 3 = FAIL.
 """
 import argparse
 import json
@@ -36,9 +22,8 @@ import threading
 import time
 
 MARKER_DEFAULT = r"===== photon-diag"
-# systemd «Reached target Graphical Interface» до serial НЕ доходит (консоль
-# замолкает на plymouth-фазе), а photon-diag начинает писать в ttyS0 сразу
-# после multi-user.target — надёжный маркер в обоих режимах загрузки.
+# «Reached target Graphical» до serial не доходит (plymouth глушит консоль);
+# photon-diag пишет в ttyS0 сразу после multi-user - маркер обоих режимов
 DIAG_LXQT = re.compile(rb"(?m)^\d+\s+lxqt-session\b")
 OVMF_CANDIDATES = (
     "/usr/share/ovmf/OVMF.fd",
@@ -355,9 +340,7 @@ def main():
             if watcher.marker.is_set():
                 marker_at = elapsed()
                 break
-            # кадры каждые 4с: меню загрузчика висит timeout=5 (isolinux
-            # timeout 50 — 5.0с, grub set timeout=5) — при 20с оно
-            # проскакивает между кадрами
+            # кадры каждые 4с: меню загрузчика (timeout 5) иначе проскакивает
             if time.time() - last_shot[0] >= min(args.shots_every, 4):
                 take_shot("boot")
             time.sleep(1)

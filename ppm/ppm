@@ -1,6 +1,5 @@
 #!/bin/sh
-# ppm — Photon Package Manager
-# Лёгкая обёртка над XBPS для PhotonOS (база: Void Linux, glibc + runit).
+# ppm - Photon Package Manager (обёртка над XBPS; порт на apt в работе).
 # Лицензия: GPL-3.0+. Подробности: docs/PPM.md
 
 VERSION="0.1.0"

@@ -1,20 +1,9 @@
 #!/bin/sh
-# Сборка live-ISO PhotonOS на базе Debian (suite: trixie).
-#
-# Пайплайн:
-#   1. mmdebstrap (mode auto: root на CI, unshare на Void-хосте) — корень;
-#      пакеты из build/packages.list идут через --include (apt у mmdebstrap
-#      сам делает update из своих же источников — хук host-путей не видит);
-#      мусор (доки/man/локали) режется dpkg-паттернами --dpkgopt ДО установки
-#   2. customize-хук: пересборка initramfs (после live-boot/plymouth),
-#       сервисы, EFI-загрузчик со встроенным конфигом
-#   3. брендинг: overlay/ (LXQt-дизайн, обои, иконки photon), plymouth-тема
-#      photon-boot (чёрный квадрат с глазами), os-release, motd
-#   4. mksquashfs -> live/filesystem.squashfs
-#   5. isolinux (BIOS) + bootx64.efi (EFI) -> xorriso -> ISO
-#
-# Хосту нужны: mmdebstrap, squashfs-tools, xorriso, mtools, dosfstools
-# (в CI ставит workflow). Результат: dist/PhotonOS-live-amd64-<дата>.iso
+# Сборка live-ISO PhotonOS (Debian, suite: trixie):
+# mmdebstrap -> customize-хук -> overlay/брендинг -> mksquashfs ->
+# isolinux (BIOS) + bootx64.efi (EFI) -> xorriso.
+# Хосту: mmdebstrap, squashfs-tools, xorriso, mtools, dosfstools.
+# Результат: dist/PhotonOS-live-amd64-<дата>.iso
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
@@ -34,9 +23,7 @@ mkdir -p "$OUT_DIR" "$WORK"
 ROOTFS="$WORK/rootfs"
 ISO="$WORK/iso"
 
-# Возобновляемость: маркер ставится после mmdebstrap+хуков. Повторный запуск
-# пропускает bootstrap-фазу (apt докачивает пакеты в кэш rootfs) — удобно
-# для длинных сборок на медленных хостах.
+# Возобновляемость: маркер после mmdebstrap - повторный запуск пропускает bootstrap
 if [ -f "$ROOTFS/.photon-rootfs-done" ]; then
     log "resume: rootfs уже готов — пропускаю mmdebstrap"
     SKIP_ROOTFS=1
@@ -56,8 +43,7 @@ else
 fi
 
 # ------------------------------------------------------- 1. хук кастомизации
-# ВАЖНО: mmdebstrap исполняет customize-хук НА ХОСТЕ (без chroot), передавая
-# корень как $1. Весь гостевой код — через `chroot "$1"`.
+# хук исполняется НА ХОСТЕ (корень = $1), гостевой код - через chroot
 HOOK="$WORK/photon-hook.sh"
 cat > "$HOOK" <<'EOS'
 #!/bin/sh
@@ -66,10 +52,7 @@ chroot "$1" /bin/sh <<'CHROOT'
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 
-# локали: генерируем en_US + ru_RU сразу в chroot (live-config в boot
-# генерировать не успевает — сессия стартует с C-локалью, Qt ругается)
-# LANG=ru_RU.UTF-8 — русский UI (переводы LXQt/pcmanfm-qt: ярлык корзины
-# «Корзина (пусто)» и меню); ru.qm лежит в pcmanfm-qt-l10n
+# локали: генерируем сразу в chroot - live-config в boot не успевает
 if [ -f /etc/locale.gen ]; then
     sed -i 's/^# *\(ru_RU.UTF-8 UTF-8\)/\1/;s/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen
     locale-gen
@@ -82,8 +65,8 @@ DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 # сервисы: дисплейный менеджер и сеть
 systemctl enable sddm.service NetworkManager.service photon-diag.service 2>/dev/null || true
 
-# EFI-загрузчик со встроенным конфигом и брендированным фоном (bg.png кладёт
-# предыдущий хук copy-in). Пишем в /root: mmdebstrap вычищает /tmp чрута.
+# EFI-загрузчик со встроенным конфигом (bg.png кладёт предыдущий хук);
+# пишем в /root - mmdebstrap вычищает /tmp чрута.
 cat > /tmp/grub-live.cfg <<'GRUB'
 set timeout=5
 set default=0
@@ -95,8 +78,7 @@ insmod png
 insmod gfxterm
 terminal_output gfxterm
 background_image (memdisk)/boot/grub/bg.png
-# grub-mkstandalone грузится с префиксом (memdisk): без поиска корня
-# /live/vmlinuz ищется в memdisk и не находится ("file not found")
+# search обязателен: без него /live/vmlinuz ищется в memdisk ("file not found")
 search --no-floppy --set=root --file /live/vmlinuz
 menuentry "PhotonOS Live" {
     linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
@@ -122,13 +104,8 @@ log "mmdebstrap: корень Debian $SUITE + пакеты PhotonOS"
 if [ "$SKIP_ROOTFS" = "1" ]; then
     log "resume: фаза mmdebstrap пропущена"
 else
-# MMDEBSTRAP_MODE — авто-выбор; на непривилегированных хостах/CI-раннерах
-# с урезанным seccomp (нет devpts/proc/mknod в userns) помогает
-# MMDEBSTRAP_MODE=fakechroot; MMDEBSTRAP_EXTRA_ARGS — прочие флаги.
-# PHOTON_CHROOT_SHIM — путь к шиму chroot для fakechroot-режима: он
-# инжектируется в rootfs после распаковки (mmdebstrap ищет chroot
-# по PATH из корня — в rootfs нет пакета chroot).
-# Аргументы собираем через set -- — значения с пробелами остаются одним argv.
+# MMDEBSTRAP_MODE/EXTRA_ARGS - флаги mmdebstrap (на CI с урезанным seccomp
+# помогает fakechroot); PHOTON_CHROOT_SHIM - шим chroot, инжектится extract-хуком.
 set --
 if [ -n "${PHOTON_CHROOT_SHIM:-}" ] && [ "$MMDEBSTRAP_MODE" = "fakechroot" ]; then
     set -- "$@" --extract-hook \
@@ -177,22 +154,18 @@ cp -a "$ROOT/overlay/." "$ROOTFS/"
 chmod +x "$ROOTFS/usr/share/photon/diag.sh" \
        "$ROOTFS/usr/share/photon/desktop-sync.sh" \
        "$ROOTFS/usr/share/photon/panel-guard.sh"
-# photon-diag: юнит появляется только с оверлеем — включаем симлинком здесь
-# (systemctl enable в customize-хуке mmdebstrap отработал РАНЬШЕ оверлея)
+# photon-diag включаем после оверлея: в customize-хуке юнита ещё нет
 mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
 ln -sf ../photon-diag.service \
     "$ROOTFS/etc/systemd/system/multi-user.target.wants/photon-diag.service"
 
-# декорации openbox в тон Onyxian-Rounded (Arc-Dark из arc-theme):
-# патчим системный rc.xml — openbox берёт его как fallback, пока у юзера
-# нет своего ~/.config/openbox/lxqt-rc.xml
+# декорации openbox в тон темы (fallback, пока у юзера нет своего rc.xml)
 if [ -f "$ROOTFS/etc/xdg/openbox/rc.xml" ]; then
     sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Arc-Dark</name>|' \
         "$ROOTFS/etc/xdg/openbox/rc.xml"
 fi
 
-# PipeWire для всех пользователей: глобальные user-юниты (локальный enable
-# юзера live-config не применяет пресеты — иконка звука оставалась красной)
+# PipeWire глобальными user-юнитами: локальный enable live-юзера пресеты не применяет
 mkdir -p "$ROOTFS/etc/systemd/user/sockets.target.wants" \
          "$ROOTFS/etc/systemd/user/default.target.wants" \
          "$ROOTFS/etc/systemd/user/pipewire.service.wants"

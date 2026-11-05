@@ -1,20 +1,9 @@
-"""Бэкенд установки PhotonOS (M3, Debian): разметка -> копия live-системы ->
-чистка live-компонентов -> GRUB -> fstab.
+"""Бэкенд установки PhotonOS: разметка -> копия live-squashfs -> GRUB -> fstab.
 
-Чистый python, без Qt: мастер вызывает Installer из рабочего потока,
-прогресс приходит через колбэки. Каждый шаг = список «операций»:
-
-    ("cmd",  argv, stdin_or_None)   — внешняя команда
-    ("file", path, content, mode)   — запись файла в /target
-    ("call", callable)              — python-действие (копирование, fstab)
-
-В dry-run операции только логируются — так бэкенд тестируется без диска.
-
-Источник установки — squashfs live-образа (как у классического Debian
-live-installer): установленная система получается 1:1 с live-ISO — с той же
-темой, брендингом и набором пакетов, без сети и без скачивания.
-
-Пароли никогда не попадают в журнал: stdin команд с паролями маскируется.
+Чистый python без Qt: мастер вызывает Installer из рабочего потока, прогресс -
+через колбэки. Шаг = список операций ("cmd"/"file"/"call"); в dry-run они
+только логируются. Источник - squashfs live-образа: система 1:1 с live-ISO,
+без сети. Пароли в журнал не попадают (stdin маскируется).
 """
 from __future__ import annotations
 
@@ -198,10 +187,7 @@ class Installer:
             lines.append("size=4GiB, type=S")
         lines.append("type=L")
         script = "\n".join(lines) + "\n"
-        # wipefs ДО sfdisk: стереть старые подписи (в т.ч. GPT) до новой
-        # разметки. После sfdisk wipefs всего диска делать НЕЛЬЗЯ — он
-        # обнуляет подпись "EFI PART" свежего GPT (разделы ядро ещё держит,
-        # но grub-установщик потом не может прочитать таблицу).
+        # wipefs ДО sfdisk: после разметки он обнулил бы подпись EFI PART свежего GPT
         return [("cmd", ["wipefs", "-a", "-f", d.path], None),
                 ("cmd", ["sfdisk", "-f", d.path], script)]
 

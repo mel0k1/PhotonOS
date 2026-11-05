@@ -41,9 +41,7 @@ jobs:
           SUITE: trixie
           MIRROR: https://deb.debian.org/debian
 
-      # Катящийся релиз «iso»: последняя сборка всегда лежит публично
-      # (релизы качаются без авторизации, в отличие от артефактов).
-      # Сюда же идёт build.log — по нему видно падения без доступа к Actions.
+      # Катящийся релиз «iso»: последняя сборка всегда публична + build.log
       - name: "Публикация rolling-релиза «iso» (ISO + лог сборки)"
         if: always()
         continue-on-error: true
@@ -73,12 +71,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # ------------------------------------------------------------- smoke-тест
-  # Загружаем собранный ISO в QEMU (TCG, headless) в двух режимах — BIOS и
-  # EFI (OVMF) — снимаем скриншоты через QMP и проверяем, что рабочий стол
-  # реально отрисовался: serial-маркер systemd + телеметрия photon-diag
-  # (PID lxqt-session) + ненулевая яркость кадров. Артефакт photon-smoke:
-  # скриншоты (shots/), serial.log, result.json, best.png на каждый режим.
+  # smoke-тест: ISO в QEMU (BIOS + EFI/OVMF), скриншоты QMP; PASS =
+  # serial-маркер photon-diag + нечёрные кадры. Артефакт photon-smoke.
   smoke:
     name: Smoke-test QEMU (BIOS + EFI/OVMF), скриншоты
     needs: iso

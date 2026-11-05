@@ -1,6 +1,5 @@
 #!/bin/bash
-# Скачивание артефактов CI PhotonOS: photon-smoke (скриншоты) и/или ISO.
-# Использование: scripts/ci_fetch.sh <run_id> [smoke|iso]
+# Скачивание артефактов CI: scripts/ci_fetch.sh <run_id> [smoke|iso]
 set -e
 cd /home/z/my-project/PhotonOS
 TOKEN=$(git remote get-url origin | sed -E 's#https://[^:]+:([^@]+)@.*#\1#')

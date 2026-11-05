@@ -1,6 +1,5 @@
-# Список пакетов live-образа PhotonOS (база Debian, suite: trixie).
-# Формат: один пакет на строку, строки с # — комментарии.
-# База ставится mmdebstrap --variant=apt (essential + apt); здесь — всё остальное.
+# Пакеты live-образа PhotonOS (Debian trixie). База - mmdebstrap
+# --variant=apt (essential + apt); здесь - всё остальное.
 
 # ядро и live-механика
 linux-image-amd64
@@ -9,8 +8,7 @@ live-config
 live-tools
 initramfs-tools
 zstd
-# d-i-утилита создания live-юзера: без неё компонент user-setup live-config
-# молча не отрабатывает (при --no-install-recommends не ставится сам)
+# live-юзер: без d-i-утилиты user-setup live-config молча не отрабатывает
 user-setup
 
 # загрузочная анимация photon-boot (тема ставится оверлеем из branding/)
@@ -56,13 +54,9 @@ papirus-icon-theme
 arc-theme
 qt6ct
 qt6-style-kvantum
-# ВНИМАНИЕ: qt6-svg-plugins (imageformats/libqsvg + iconengines) откатили:
-# с ним lxqt-panel в TCG-окружении стартует окном 1x1 и не отрисовывается
-# (3 прогона подряд; без пакета — панель живая). SVG-иконки меню мы и так
-# не используем: кнопка меню — PNG (64x64 start-here-photon.png).
+# ВНИМАНИЕ: qt6-svg-plugins откатили - с ним lxqt-panel в TCG стартует окном 1x1
 lxqt-themes
-# переводы (ru): .qm-файлы лежат в отдельных -l10n пакетах, метапакеты их
-# не тянут; без них при LANG=ru_RU UI остаётся английским
+# переводы ru: .qm лежат в -l10n пакетах, метапакеты их не тянут
 liblxqt-l10n
 lxqt-panel-l10n
 lxqt-runner-l10n
@@ -89,15 +83,12 @@ dbus-x11
 polkitd
 pkexec
 upower
-# gvfs: без него gio не знает trash:/// — pcmanfm-qt не создаёт ярлык
-# Корзины на рабочем столе (createTrash: g_file_query_exists("trash:///")),
-# а gvfsd-metadata нужен для metadata::trusted (доверие ярлыкам)
+# gvfs: без него gio не знает trash:/// - нет ярлыка Корзины и metadata::trusted
 gvfs
 gvfs-daemons
 
-# установщик: мастер на PyQt6 + бэкенд (sfdisk, GRUB EFI в /target)
-# e2fsprogs не essential — variant=apt его не ставит, а mkfs.ext4 нужен и
-# установщику, и fsck при загрузке установленной системы
+# установщик: PyQt6-мастер + бэкенд (sfdisk, GRUB EFI в /target);
+# e2fsprogs не essential, а mkfs.ext4 нужен установщику и fsck
 e2fsprogs
 python3-pyqt6
 fdisk
