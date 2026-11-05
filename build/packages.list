@@ -89,6 +89,11 @@ dbus-x11
 polkitd
 pkexec
 upower
+# gvfs: без него gio не знает trash:/// — pcmanfm-qt не создаёт ярлык
+# Корзины на рабочем столе (createTrash: g_file_query_exists("trash:///")),
+# а gvfsd-metadata нужен для metadata::trusted (доверие ярлыкам)
+gvfs
+gvfs-daemons
 
 # установщик: мастер на PyQt6 + бэкенд (sfdisk, GRUB EFI в /target)
 # e2fsprogs не essential — variant=apt его не ставит, а mkfs.ext4 нужен и
