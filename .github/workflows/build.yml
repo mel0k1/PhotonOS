@@ -110,6 +110,7 @@ jobs:
           for f in usr/bin/photon-installer \
                    usr/lib/photon_install \
                    usr/share/lxqt/themes/Onyxian-Rounded/lxqt-panel.qss \
+                   usr/share/backgrounds/photon-ribbon.jpg \
                    usr/share/backgrounds/photon-flow.jpg; do
             echo "$L" | grep -q "$f" || { echo "НЕТ: $f"; exit 1; }
             echo "ок: $f"

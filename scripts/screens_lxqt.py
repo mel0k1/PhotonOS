@@ -53,7 +53,7 @@ def photon_icon(name: str, size: int, ctx: str = "apps") -> QPixmap:
 
 
 def wallpaper() -> QPixmap:
-    p = os.path.join(ROOT, "overlay/usr/share/backgrounds/photon-flow.jpg")
+    p = os.path.join(ROOT, "overlay/usr/share/backgrounds/photon-ribbon.jpg")
     return QPixmap(p).scaled(W, H, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                              Qt.TransformationMode.SmoothTransformation).copy(0, 0, W, H)
 
@@ -294,8 +294,8 @@ def wallpaper_scene() -> QImage:
              "white" if on else "#5c6b7a", bold=on)
 
     # сетка обоев
-    bgs = ["photon-flow.jpg", "photon-maze.jpg", "photon-cone.jpg",
-           "photon-shadow.jpg", "photon-deepin.png"]
+    bgs = ["photon-ribbon.jpg", "photon-flow.jpg", "photon-maze.jpg",
+           "photon-cone.jpg", "photon-shadow.jpg", "photon-deepin.png"]
     gx, gy, tw, th, gap = dx + 190, dy + 58, 140, 79, 12
     for i, name in enumerate(bgs):
         col, row = i % 3, i // 3
