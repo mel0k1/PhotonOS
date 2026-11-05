@@ -35,7 +35,10 @@ import sys
 import threading
 import time
 
-MARKER_DEFAULT = r"Reached target Graphical Interface"
+MARKER_DEFAULT = r"===== photon-diag"
+# systemd «Reached target Graphical Interface» до serial НЕ доходит (консоль
+# замолкает на plymouth-фазе), а photon-diag начинает писать в ttyS0 сразу
+# после multi-user.target — надёжный маркер в обоих режимах загрузки.
 DIAG_LXQT = re.compile(rb"(?m)^\d+\s+lxqt-session\b")
 OVMF_CANDIDATES = (
     "/usr/share/ovmf/OVMF.fd",
@@ -198,13 +201,13 @@ class SerialWatch(threading.Thread):
                     break
                 fh.write(chunk)
                 self.buf.extend(chunk)
-                tail = bytes(self.buf[-8192:])
+                whole = bytes(self.buf)  # лог короткий (~десятки КБ) — ищем по всему
                 if self.marker_re and not self.marker.is_set():
-                    if self.marker_re.search(tail):
+                    if self.marker_re.search(whole):
                         self.marker.set()
-                if not self.diag_ok.is_set() and DIAG_LXQT.search(tail):
+                if not self.diag_ok.is_set() and DIAG_LXQT.search(whole):
                     self.diag_ok.set()
-                if b"CI-DIAG END" in tail:
+                if b"CI-DIAG END" in whole:
                     self.diag_end.set()
         finally:
             fh.close()
