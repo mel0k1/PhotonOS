@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - '**.md'
       - 'logo/**'
+      - 'docs/screens/**'
       - 'LICENSE'
   workflow_dispatch:
 
@@ -117,7 +118,7 @@ jobs:
       - name: Загрузка BIOS + скриншоты
         run: |
           ISO=$(ls dist/*.iso | head -1)
-          python3 scripts/ci_boot.py --iso "$ISO" --mode bios --outdir out/bios
+          python3 scripts/ci_boot.py --iso "$ISO" --mode bios --outdir out/bios --run-install
 
       - name: Загрузка EFI (OVMF) + скриншоты
         run: |

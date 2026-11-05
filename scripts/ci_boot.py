@@ -233,6 +233,9 @@ def main():
     ap.add_argument("--max-settle", type=int, default=300,
                     help="максимум сек ожидания телеметрии после маркера")
     ap.add_argument("--shots-every", type=int, default=20)
+    ap.add_argument("--run-install", action="store_true",
+                    help="после PASS запустить photon-installer в сессии "
+                         "и снять его кадры (только для BIOS-прогона)")
     ap.add_argument("--keep-vm", action="store_true",
                     help="не гасить QEMU (для отладки)")
     args = ap.parse_args()
@@ -418,6 +421,28 @@ def main():
             if best["path"]:
                 shutil.copyfile(best["path"],
                                 os.path.join(args.outdir, "best.png"))
+
+            # фаза 4: установщик — запуск GUI на дисплее сессии через serial
+            if args.run_install:
+                log("запускаю photon-installer через serial (DISPLAY=:0)")
+                watcher.send(
+                    "\nexport DISPLAY=:0; "
+                    "export XAUTHORITY=$(tr '\\0' '\\n' "
+                    "</proc/$(pgrep -o lxqt-session)/environ | "
+                    "grep ^XAUTHORITY= | cut -d= -f2-); "
+                    "(setsid photon-installer >/tmp/pi.log 2>&1 &); "
+                    "echo INST-LAUNCHED\n"
+                )
+                time.sleep(10)
+                for _ in range(8):
+                    take_shot("inst")
+                    time.sleep(6)
+                # лог запуска установщика — в serial.log
+                watcher.send("\necho === PI-LOG ===; cat /tmp/pi.log; "
+                             "echo === PI-LOG-END ===\n")
+                time.sleep(5)
+                result["install_shots"] = sum(
+                    1 for s in result["shots"] if s["file"].startswith("inst-"))
         log(f"ВЕРДИКТ: {result.get('verdict')} — {json.dumps(result, ensure_ascii=False)[:400]}")
     finally:
         with open(os.path.join(args.outdir, "result.json"), "w") as fh:
