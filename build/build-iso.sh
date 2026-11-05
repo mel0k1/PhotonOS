@@ -152,6 +152,9 @@ fi
 # ------------------------------------------------- 2. оверлей и брендинг
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
 cp -a "$ROOT/overlay/." "$ROOTFS/"
+# в образе всё - root: сборщик кладёт файлы своим uid, а sudo проверяет
+# владельца /etc/sudoers.d и молча игнорирует файлы с чужим uid
+chown -R 0:0 "$ROOTFS"
 chmod +x "$ROOTFS/usr/share/photon/diag.sh" \
        "$ROOTFS/usr/share/photon/desktop-sync.sh" \
        "$ROOTFS/usr/share/photon/panel-guard.sh"
