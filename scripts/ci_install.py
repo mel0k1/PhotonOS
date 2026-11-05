@@ -160,7 +160,8 @@ def main() -> int:
     while time.time() - t0 < 900 and marker_at is None:
         if proc.poll() is not None:
             break
-        if watcher.marker.is_set():
+        # diag_ok = lxqt-session в телеметрии photon-diag: сессия жива
+        if watcher.diag_ok.is_set():
             marker_at = time.time() - t0
             break
         n_shots += 1
@@ -177,7 +178,7 @@ def main() -> int:
         return 3
 
     # дать сессии устаканиться, потом конфиг и установка (вывод - в ttyS0)
-    time.sleep(60)
+    time.sleep(45)
     log("запускаю автоустановку через serial")
     watcher.send("\nprintf %s " + shlex.quote(AUTO_CONF)
                  + " > /tmp/photon-auto.conf\n")
