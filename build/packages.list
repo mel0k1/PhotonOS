@@ -27,8 +27,11 @@ lxqt-powermanagement
 lxqt-policykit
 lxqt-sudo
 pcmanfm-qt
+pcmanfm-qt-l10n
 qterminal
+qterminal-l10n
 lximage-qt
+lximage-qt-l10n
 openbox
 obconf-qt
 picom
@@ -58,6 +61,17 @@ qt6-style-kvantum
 # (3 прогона подряд; без пакета — панель живая). SVG-иконки меню мы и так
 # не используем: кнопка меню — PNG (64x64 start-here-photon.png).
 lxqt-themes
+# переводы (ru): .qm-файлы лежат в отдельных -l10n пакетах, метапакеты их
+# не тянут; без них при LANG=ru_RU UI остаётся английским
+liblxqt-l10n
+lxqt-panel-l10n
+lxqt-runner-l10n
+lxqt-session-l10n
+lxqt-archiver-l10n
+lxqt-powermanagement-l10n
+lxqt-policykit-l10n
+lxqt-sudo-l10n
+obconf-qt-l10n
 # управление GUI из серийной консоли (клики/клавиатура по X) — автотесты
 xdotool
 # X-диагностика live-сессии (xwininfo/xdpyinfo) — серийная отладка
