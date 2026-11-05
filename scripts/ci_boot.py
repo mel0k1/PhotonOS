@@ -86,20 +86,11 @@ class QMP:
             raise RuntimeError(f"QMP {name}: {msg['error']}")
         return msg.get("return")
 
-    def screendump(self, base):
-        """Скриншот; base без расширения. Возвращает путь к файлу."""
-        try:
-            self.cmd("screendump", filename=base + ".png", format="png")
-            return base + ".png"
-        except RuntimeError:
-            ppm = base + ".ppm"
-            self.cmd("screendump", filename=ppm)
-            png = base + ".png"
-            conv = shutil.which("convert")
-            if conv and subprocess.run([conv, ppm, png]).returncode == 0:
-                os.unlink(ppm)
-                return png
-            return ppm
+    def screendump_ppm(self, base):
+        """Скриншот в PPM (формат по умолчанию, есть в любом QEMU)."""
+        ppm = base + ".ppm"
+        self.cmd("screendump", filename=ppm)
+        return ppm
 
     def quit(self):
         try:
@@ -109,8 +100,7 @@ class QMP:
 
 
 def ppm_stats(path):
-    """(средняя яркость 0..1, доля пикселей ярче 0.45) для PPM P6.
-    Для PNG отдаёт приблизительную оценку через ImageMagick-статистику."""
+    """(средняя яркость 0..1, доля пикселей ярче 0.45) для PPM P6."""
     if path.endswith(".ppm"):
         with open(path, "rb") as fh:
             data = fh.read()
@@ -144,16 +134,16 @@ def ppm_stats(path):
         mean = sum(lum) / len(lum)
         bright = sum(1 for v in lum if v > 0.45) / len(lum)
         return mean, bright
-    # png: ImageMagick
-    conv = shutil.which("convert")
+    # не-PPM (аварийный фолбэк): средняя через ImageMagick, ярких нет
+    conv = shutil.which("convert") or shutil.which("magick")
     if not conv:
         return 0.0, 0.0
     try:
         out = subprocess.run(
-            [conv, path, "-colorspace", "Gray", "-format", "%[fx:mean] %[fx:mean*0]"],
+            [conv, path, "-colorspace", "Gray", "-format", "%[fx:mean]", "info:"],
             capture_output=True, text=True, timeout=30,
-        ).stdout.split()
-        return float(out[0]), -1.0
+        )
+        return float(out.stdout.strip()), -1.0
     except Exception:
         return 0.0, 0.0
 
@@ -164,6 +154,7 @@ class SerialWatch(threading.Thread):
     def __init__(self, path, logfile):
         super().__init__(daemon=True)
         self.path = path
+        self.logfile = logfile
         self.sock = None
         self.buf = bytearray()          # весь поток (для финального regex)
         self.marker = threading.Event()
@@ -266,6 +257,7 @@ def main():
         "-chardev", f"socket,id=ser0,path={run}/serial.sock,server=on,wait=off",
         "-serial", "chardev:ser0",
         "-qmp", f"unix:{run}/qmp.sock,server=on,wait=off",
+        "-nic", "user,model=e1000",
     ]
     if args.mode == "efi":
         ovmf = next((p for p in OVMF_CANDIDATES if os.path.exists(p)), None)
@@ -305,30 +297,45 @@ def main():
               "shots": []}
     shot_i = 0
     best = {"mean": -1.0, "bright": -1.0, "path": None}
+    last_shot = [0.0]
+
+    def elapsed():
+        return time.time() - t0
+
+    def ppm_to_png(base, ppm):
+        """Конвертация для артефакта; возвращает итоговый файл."""
+        conv = shutil.which("convert") or shutil.which("magick")
+        if conv:
+            png = base + ".png"
+            rc = subprocess.run([conv, ppm, png], capture_output=True)
+            if rc.returncode == 0 and os.path.exists(png) \
+                    and os.path.getsize(png) > 0:
+                os.unlink(ppm)
+                return png
+        return ppm
 
     def take_shot(tag):
         nonlocal shot_i, best
         shot_i += 1
         base = os.path.join(shots, f"{tag}-{shot_i:03d}")
         try:
-            path = qmp.screendump(base)
+            ppm = qmp.screendump_ppm(base)
         except Exception as exc:
             log(f"скриншот не удался: {exc}")
             return
-        mean, bright = ppm_stats(path)
+        mean, bright = ppm_stats(ppm)
+        path = ppm_to_png(base, ppm)
         result["shots"].append({"n": shot_i, "t": int(elapsed()),
                                 "file": os.path.basename(path),
                                 "mean": round(mean, 4),
                                 "bright": round(bright, 4)})
         log(f"скриншот {os.path.basename(path)}: mean={mean:.3f} "
             f"bright={bright:.3f}")
+        last_shot[0] = time.time()
         if mean + bright > best["mean"] + best["bright"]:
             best = {"mean": mean, "bright": bright, "path": path}
 
     t0 = time.time()
-
-    def elapsed():
-        return time.time() - t0
 
     try:
         # фаза 1: ждём маркер загрузки
@@ -342,7 +349,7 @@ def main():
             if watcher.marker.is_set():
                 marker_at = elapsed()
                 break
-            if shot_i == 0 or elapsed() % args.shots_every < 0.1:
+            if time.time() - last_shot[0] >= args.shots_every:
                 take_shot("boot")
             time.sleep(1)
         else:
@@ -362,6 +369,9 @@ def main():
                     break
                 if now >= args.max_settle:
                     log("телеметрия lxqt-session не поймана за max-settle")
+                    break
+                if proc.poll() is not None:
+                    log(f"ОШИБКА: QEMU завершился сам, код {proc.returncode}")
                     break
                 take_shot("desk")
                 time.sleep(max(1, args.shots_every - 3))
