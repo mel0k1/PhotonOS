@@ -358,10 +358,10 @@ class UserStep(Step):
         self.login_edit = QLineEdit()
         self.pass_lbl = QLabel()
         self.pass_edit = QLineEdit()
-        self.pass_edit.setEchoMode(QLineEdit.Password)
+        self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.pass2_lbl = QLabel()
         self.pass2_edit = QLineEdit()
-        self.pass2_edit.setEchoMode(QLineEdit.Password)
+        self.pass2_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.show_chk = QCheckBox()
         self.show_chk.toggled.connect(self._toggle_echo)
         self.host_lbl = QLabel()
@@ -390,7 +390,8 @@ class UserStep(Step):
         self.retranslate()
 
     def _toggle_echo(self, show: bool) -> None:
-        mode = QLineEdit.Normal if show else QLineEdit.Password
+        mode = (QLineEdit.EchoMode.Normal if show
+                else QLineEdit.EchoMode.Password)
         self.pass_edit.setEchoMode(mode)
         self.pass2_edit.setEchoMode(mode)
 
