@@ -20,6 +20,11 @@ TARGET = "/target"
 LOG_PATH = "/tmp/photon-installer.log"
 SRC_MOUNT = "/run/photon-src"
 
+
+def boot_mode() -> str:
+    """Режим загрузки live-сессии: efi (есть /sys/firmware/efi) или bios."""
+    return "efi" if os.path.isdir("/sys/firmware/efi") else "bios"
+
 # Где live-boot монтирует носитель, и как называется корневой squashfs.
 SQUASHFS_CANDIDATES = [
     "/run/live/medium/live/filesystem.squashfs",
@@ -99,6 +104,13 @@ class Installer:
     steps: list = field(default_factory=list, init=False)
     _log_fh: object = None
 
+    # EFI или BIOS — определяется по live-сессии один раз
+    @property
+    def mode(self) -> str:
+        if not hasattr(self, "_mode"):
+            self._mode = boot_mode()
+        return self._mode
+
     # ── журнал ──────────────────────────────────────────────────────────
     def log(self, text: str) -> None:
         line = f"[{time.strftime('%H:%M:%S')}] {text}"
@@ -155,7 +167,8 @@ class Installer:
             ("fstab", "fstab и точки монтирования", self._ops_fstab(d)),
             ("config", "Настройка системы", self._ops_config()),
             ("users", "Пользователи и пароли", self._ops_users()),
-            ("boot", "Загрузчик GRUB (UEFI)", self._ops_bootloader()),
+            ("boot", f"Загрузчик GRUB ({self.mode.upper()})",
+             self._ops_bootloader(d)),
             ("kernel", "Initramfs (update-initramfs)", self._ops_initramfs()),
             ("umount", "Размонтирование", self._ops_umount(d)),
         ]
@@ -169,23 +182,35 @@ class Installer:
 
     # ── разделы ─────────────────────────────────────────────────────────
     def _root_part(self, d) -> str:
-        # ESP=1, swap=2 (если есть) → корень последний
-        return part_path(d.name, 3 if self.settings.swap else 2)
+        # EFI: ESP=1, swap=2 (если есть) → корень последний;
+        # BIOS (MBR): swap=1 → корень последний, ESP нет
+        if self.mode == "efi":
+            return part_path(d.name, 3 if self.settings.swap else 2)
+        return part_path(d.name, 2 if self.settings.swap else 1)
 
-    def _esp_part(self, d) -> str:
-        return part_path(d.name, 1)
+    def _esp_part(self, d):
+        return part_path(d.name, 1) if self.mode == "efi" else None
 
     def _swap_part(self, d):
-        return part_path(d.name, 2) if self.settings.swap else None
+        n = 2 if self.mode == "efi" else 1
+        return part_path(d.name, n) if self.settings.swap else None
 
     # ── операции по шагам ───────────────────────────────────────────────
     def _ops_partition(self, d) -> list:
         s = self.settings
-        lines = ["label: gpt",
-                 "size=512MiB, type=U, bootable"]
-        if s.swap:
-            lines.append("size=4GiB, type=S")
-        lines.append("type=L")
+        if self.mode == "efi":
+            lines = ["label: gpt",
+                     "size=512MiB, type=U, bootable"]
+            if s.swap:
+                lines.append("size=4GiB, type=S")
+            lines.append("type=L")
+        else:
+            # MBR: GRUB core.img живёт в post-MBR gap, ESP не нужен
+            lines = ["label: dos"]
+            if s.swap:
+                lines += ["size=4GiB, type=S", "type=L, bootable"]
+            else:
+                lines.append("type=L, bootable")
         script = "\n".join(lines) + "\n"
         # wipefs ДО sfdisk: после разметки он обнулил бы подпись EFI PART свежего GPT
         return [("cmd", ["wipefs", "-a", "-f", d.path], None),
@@ -193,9 +218,12 @@ class Installer:
 
     def _ops_mkfs(self, d) -> list:
         s = self.settings
-        ops = [("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
-                        part_path(d.name, 1)], None)]
-        idx = 2
+        ops = []
+        idx = 1
+        if self.mode == "efi":
+            ops.append(("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
+                                part_path(d.name, 1)], None))
+            idx = 2
         if s.swap:
             ops.append(("cmd", ["mkswap", "-L", "swap",
                                 part_path(d.name, idx)], None))
@@ -206,13 +234,16 @@ class Installer:
         return ops
 
     def _ops_mount(self, d) -> list:
-        return [
+        ops = [
             ("cmd", ["mkdir", "-p", TARGET], None),
             ("cmd", ["mount", "-o", "defaults,noatime",
                      self._root_part(d), TARGET], None),
-            ("cmd", ["mkdir", "-p", f"{TARGET}/boot/efi"], None),
-            ("cmd", ["mount", self._esp_part(d), f"{TARGET}/boot/efi"], None),
         ]
+        if self.mode == "efi":
+            ops += [("cmd", ["mkdir", "-p", f"{TARGET}/boot/efi"], None),
+                    ("cmd", ["mount", self._esp_part(d),
+                             f"{TARGET}/boot/efi"], None)]
+        return ops
 
     def _ops_copy(self) -> list:
         """Squashfs live-образа -> /target (tar-поток с исключениями)."""
@@ -312,6 +343,11 @@ class Installer:
         if os.path.lexists(diag):
             os.unlink(diag)
             self.log("photon-diag.service отключён")
+        # sudo без пароля — только для live-юзера, на диске не нужен
+        live_sudo = f"{TARGET}/etc/sudoers.d/photon-live"
+        if os.path.lexists(live_sudo):
+            os.unlink(live_sudo)
+            self.log("sudoers-правило live-сессии удалено")
         # machine-id перегенерируется при первой загрузке
         mid = f"{TARGET}/etc/machine-id"
         with open(mid, "w") as f:
@@ -340,9 +376,10 @@ class Installer:
             fstab.append(
                 f"UUID={uuids[self._root_part(d)]} / ext4 "
                 "defaults,noatime 0 1")
-            fstab.append(
-                f"UUID={uuids[self._esp_part(d)]} /boot/efi vfat "
-                "defaults,noatime 0 2")
+            if self.mode == "efi":
+                fstab.append(
+                    f"UUID={uuids[self._esp_part(d)]} /boot/efi vfat "
+                    "defaults,noatime 0 2")
             if self.settings.swap and self._swap_part(d) in uuids:
                 fstab.append(
                     f"UUID={uuids[self._swap_part(d)]} none swap sw 0 0")
@@ -442,15 +479,44 @@ class Installer:
             subprocess.run(["chroot", TARGET, "groupadd", "-f", g],
                            check=True)
 
-    def _ops_bootloader(self) -> list:
-        return [
-            ("cmd", ["chroot", TARGET, "grub-install",
-                     "--target=x86_64-efi", "--efi-directory=/boot/efi",
-                     "--bootloader-id=PhotonOS", "--recheck"], None),
-            ("cmd", ["chroot", TARGET, "grub-mkconfig", "-o",
-                     "/boot/grub/grub.cfg"], None),
-            ("call", self._efi_fallback),
-        ]
+    def _grub_serial(self) -> None:
+        """Серийная консоль в установленной системе: отладка на железе и CI;
+        systemd-getty-generator сам поднимет getty на ttyS0."""
+        path = f"{TARGET}/etc/default/grub"
+        value = 'GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200"'
+        lines = []
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                lines = f.readlines()
+        out, done = [], False
+        for line in lines:
+            if line.startswith("GRUB_CMDLINE_LINUX="):
+                out.append(value + "\n")
+                done = True
+            else:
+                out.append(line)
+        if not done:
+            out.append(value + "\n")
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(out)
+
+    def _ops_bootloader(self, d=None) -> list:
+        if self.mode == "efi":
+            install = ("cmd", ["chroot", TARGET, "grub-install",
+                               "--target=x86_64-efi",
+                               "--efi-directory=/boot/efi",
+                               "--bootloader-id=PhotonOS", "--recheck"], None)
+            tail = [("call", self._efi_fallback)]
+        else:
+            # BIOS: модули i386-pc (grub-pc-bin) уже в образе, ставим в MBR
+            install = ("cmd", ["chroot", TARGET, "grub-install",
+                               "--target=i386-pc", self.settings.disk], None)
+            tail = []
+        return [install,
+                ("call", self._grub_serial),
+                ("cmd", ["chroot", TARGET, "grub-mkconfig", "-o",
+                         "/boot/grub/grub.cfg"], None),
+                *tail]
 
     def _efi_fallback(self) -> None:
         """Страховка: копия grubx64.efi по пути EFI/boot/bootx64.efi —

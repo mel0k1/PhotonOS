@@ -211,6 +211,9 @@ install -m0644 "$ROOT/welcome/photon-welcome-autostart.desktop" \
 find "$ROOTFS/usr/lib/photon_welcome" -type d -name '__pycache__' \
     -prune -exec rm -rf {} + 2>/dev/null || true
 
+# sudo без пароля в live-сессии; установщик снимает правило в /target
+chmod 0440 "$ROOTFS/etc/sudoers.d/photon-live"
+
 # photon-backup: rsync-копия домашнего каталога
 install -m0755 "$ROOT/backup/photon-backup" "$ROOTFS/usr/bin/photon-backup"
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"

@@ -143,7 +143,11 @@ def ppm_stats(path):
 
 
 class SerialWatch(threading.Thread):
-    """Читает serial-сокет QEMU, пишет в serial.log, следит за маркерами."""
+    """Читает serial-сокет QEMU, пишет в serial.log, следит за маркерами.
+
+    ok_re/end_re можно подменить снаружи (ci_install.py); дефолт - телеметрия
+    photon-diag live-сессии.
+    """
 
     def __init__(self, path, logfile):
         super().__init__(daemon=True)
@@ -153,6 +157,8 @@ class SerialWatch(threading.Thread):
         self.buf = bytearray()          # весь поток (для финального regex)
         self.marker = threading.Event()
         self.marker_re = None
+        self.ok_re = None               # None -> DIAG_LXQT
+        self.end_re = None              # None -> b"CI-DIAG END"
         self.diag_ok = threading.Event()
         self.diag_end = threading.Event()
         self.stopping = False
@@ -179,6 +185,8 @@ class SerialWatch(threading.Thread):
         return False
 
     def run(self):
+        ok_re = self.ok_re or DIAG_LXQT
+        end_re = self.end_re or b"CI-DIAG END"
         fh = open(self.logfile, "ab", buffering=0)
         try:
             while not self.stopping:
@@ -196,9 +204,9 @@ class SerialWatch(threading.Thread):
                 if self.marker_re and not self.marker.is_set():
                     if self.marker_re.search(whole):
                         self.marker.set()
-                if not self.diag_ok.is_set() and DIAG_LXQT.search(whole):
+                if not self.diag_ok.is_set() and ok_re.search(whole):
                     self.diag_ok.set()
-                if b"CI-DIAG END" in whole:
+                if end_re and end_re in whole:
                     self.diag_end.set()
         finally:
             fh.close()

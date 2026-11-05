@@ -123,6 +123,8 @@ python3-pyqt6
 fdisk
 efibootmgr
 grub-efi-amd64
+# модули i386-pc: BIOS-установки grub-install в MBR (не конфликтует с grub-efi)
+grub-pc-bin
 
 # инструменты сборки ISO (гостевые: isolinux, grub-efi, fat)
 isolinux

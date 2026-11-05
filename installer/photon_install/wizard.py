@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from . import disk, style
-from .backend import BackendError, Installer
+from .backend import BackendError, Installer, boot_mode
 from .locale import tr
 from .settings import DE_OPTIONS, InstallSettings, valid_hostname, valid_login
 
@@ -310,7 +310,8 @@ class DiskStep(Step):
             self.state_lbl.setText("⚠ " + tr(self.lang, "disk_wipe_warn", disk=d.path))
         else:
             self.state_lbl.setText("✔ " + tr(self.lang, "disk_empty_ok"))
-        plan = disk.auto_plan(d.size, self.swap_chk.isChecked())
+        plan = disk.auto_plan(d.size, self.swap_chk.isChecked(),
+                              self.mw.boot_mode)
         self.plan.clear()
         for row in plan:
             QTreeWidgetItem(self.plan, [
@@ -508,6 +509,8 @@ class SummaryStep(Step):
             ("sum_host", s.hostname),
             ("sum_de", s.de_title()),
             ("sum_mail", "Claws Mail" if s.mail else tr(self.lang, "sum_no")),
+            ("sum_boot", "EFI (UEFI)" if self.mw.boot_mode == "efi"
+                         else "BIOS (legacy)"),
         ]
         for key, value in rows:
             QTreeWidgetItem(self.tree, [tr(self.lang, key), str(value)])
@@ -651,6 +654,7 @@ class MainWindow(QMainWindow):
         self.lang = lang
         self.fake_disks = fake_disks
         self.dry_run = dry_run
+        self.boot_mode = boot_mode()
         self.settings = InstallSettings(lang=lang)
         self.settings.tz = current_timezone()
         self.step_idx = 0

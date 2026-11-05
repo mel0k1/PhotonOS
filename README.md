@@ -46,6 +46,8 @@
 - Для слабых ПК - zram (zstd, половина RAM) и earlyoom; для ноутбука -
   сон по закрытию крышки (logind) и энергосбережение LXQt.
 - Русский UI по умолчанию, обои photon-ribbon.
+- Установщик в образе (ярлык в меню): разметка, копия системы, GRUB -
+  EFI и BIOS (MBR); автоустановка без вопросов - `photon-installer --auto`.
 - Загрузка - plymouth-тема photon-boot: чёрный квадрат с глазами собирается
   кадр за кадром.
 - Брендинг - os-release, motd, issue, иконки photon, photon-fetch.
@@ -61,9 +63,12 @@
 ![EFI-загрузка (OVMF)](docs/screens/efi.png)
 
 CI на каждый push собирает ISO и сразу гоняет smoke-тест: загрузка в QEMU
-(BIOS и EFI/OVMF), скриншоты, телеметрия photon-diag. Последняя сборка -
-в rolling-релизе [iso](https://github.com/mel0k1/PhotonOS/releases/tag/iso).
-Live-сессия - автологин под `anon` без пароля.
+(BIOS и EFI/OVMF), скриншоты, телеметрия photon-diag; отдельная джоба
+прогоняет полный цикл установки: `--auto` на виртуальный диск и загрузку
+установленной системы с него. Последняя сборка - в rolling-релизе
+[iso](https://github.com/mel0k1/PhotonOS/releases/tag/iso).
+Live-сессия - автологин под `anon` без пароля (sudo без пароля только
+в live-сессии).
 
 ## Состав репозитория
 
@@ -113,7 +118,8 @@ REBOOT=yes
 
 ## Планы
 
-- [ ] Установщик на диск - отладка мастера
+- [ ] Установщик: отладка GUI-мастера на реальном железе
+- [x] Установка на железо: EFI и BIOS (MBR), e2e-тест установки в CI
 - [x] Фирменные приложения: photon-welcome, photon-backup
 - [ ] Фирменные приложения: следующий раунд
 - [x] Слабые ПК: zram, earlyoom, CI-метрики RAM/ISO, автоустановка --auto
