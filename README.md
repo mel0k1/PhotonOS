@@ -43,8 +43,10 @@ Debian**: только база, наш рабочий стол и наш бре
 - **База** — Debian trixie, стабильные пакеты, предсказуемые обновления.
 - **Минимум** — LXQt-ядро без метапакетов, без офиса и прочего лишнего;
   документация и man-страницы вырезаны на уровне dpkg.
-- **Рабочий стол** — **LXQt в духе Deepin**: нижняя панель-док, светлые темы
-  (Arc + Papirus), композитор **picom** с тенями и блюром, фирменные обои.
+- **Рабочий стол** — **LXQt в духе Deepin**: нижняя панель-док, тёмные темы
+  (Onyxian-Rounded + Kvantum Orchis, иконки Papirus), композитор **picom**
+  с тенями и блюром, фирменные обои **photon-ribbon** (лента на графите).
+  Русский UI по умолчанию.
 - **Загрузка** — фирменная plymouth-тема **photon-boot**: чёрный квадрат
   с двумя белыми глазами собирается из кадра за кадром.
 - **Брендинг** — os-release, motd, issue, иконки photon, photon-fetch.
@@ -60,7 +62,7 @@ Onyxian-Rounded + Kvantum Orchis-solidDark):
 
 ![Меню загрузчика PhotonOS](docs/screens/grub.png)
 
-![Рабочий стол PhotonOS — Onyxian-Rounded: плавающая панель-док, куб-меню, часы, трей](docs/screens/desktop.png)
+![Рабочий стол PhotonOS — Onyxian-Rounded и обои photon-ribbon: плавающая панель-док, куб-меню, часы, трей, корзина](docs/screens/desktop.png)
 
 ![Тот же рабочий стол при EFI-загрузке (OVMF)](docs/screens/efi.png)
 

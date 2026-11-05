@@ -355,7 +355,10 @@ def main():
             if watcher.marker.is_set():
                 marker_at = elapsed()
                 break
-            if time.time() - last_shot[0] >= args.shots_every:
+            # кадры каждые 4с: меню загрузчика висит timeout=5 (isolinux
+            # timeout 50 — 5.0с, grub set timeout=5) — при 20с оно
+            # проскакивает между кадрами
+            if time.time() - last_shot[0] >= min(args.shots_every, 4):
                 take_shot("boot")
             time.sleep(1)
         else:
