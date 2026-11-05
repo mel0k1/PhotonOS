@@ -178,6 +178,11 @@ ln -sf /usr/lib/systemd/user/pipewire.service \
 ln -sf /usr/lib/systemd/user/wireplumber.service \
     "$ROOTFS/etc/systemd/user/pipewire.service.wants/wireplumber.service"
 
+# photon-backup: ежедневный таймер пользователя
+mkdir -p "$ROOTFS/etc/systemd/user/timers.target.wants"
+ln -sf ../photon-backup.timer \
+    "$ROOTFS/etc/systemd/user/timers.target.wants/photon-backup.timer"
+
 install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
 
 # установщик: мастер (PyQt6) + бэкенд — доступны из live-сессии
@@ -189,6 +194,21 @@ install -m0644 "$ROOT/installer/photon-installer.desktop" \
     "$ROOTFS/usr/share/applications/photon-installer.desktop"
 find "$ROOTFS/usr/lib/photon_install" -type d -name '__pycache__' \
     -prune -exec rm -rf {} + 2>/dev/null || true
+
+# welcome-окно первого входа: обновления, принтеры, копия, почта
+log "photon-welcome: окно первого входа"
+mkdir -p "$ROOTFS/usr/lib/photon_welcome"
+cp -a "$ROOT/welcome/photon_welcome/." "$ROOTFS/usr/lib/photon_welcome/"
+install -m0755 "$ROOT/welcome/photon-welcome" "$ROOTFS/usr/bin/photon-welcome"
+install -m0644 "$ROOT/welcome/photon-welcome.desktop" \
+    "$ROOTFS/usr/share/applications/photon-welcome.desktop"
+install -m0644 "$ROOT/welcome/photon-welcome-autostart.desktop" \
+    "$ROOTFS/etc/xdg/autostart/photon-welcome-autostart.desktop"
+find "$ROOTFS/usr/lib/photon_welcome" -type d -name '__pycache__' \
+    -prune -exec rm -rf {} + 2>/dev/null || true
+
+# photon-backup: rsync-копия домашнего каталога
+install -m0755 "$ROOT/backup/photon-backup" "$ROOTFS/usr/bin/photon-backup"
 mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
     "$ROOTFS/usr/share/plymouth/themes/photon-boot"

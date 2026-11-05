@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=PhotonOS welcome
+Exec=photon-welcome --autostart
+Terminal=false
+NoDisplay=true

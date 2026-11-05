@@ -64,6 +64,7 @@ class InstallSettings:
     password: str = ""
     hostname: str = ""
     de: str = "lxqt"
+    mail: bool = True       # Claws Mail входит в образ; галочка снимает его при установке
     disks: list = field(default_factory=list)   # кэш опроса для сводки
 
     def de_title(self) -> str:

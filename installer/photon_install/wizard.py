@@ -448,6 +448,10 @@ class DeStep(Step):
             card.radio.toggled.connect(self._picked)
             self.cards.append((card, opt))
             flow.addWidget(card)
+        self.mail_chk = QCheckBox(tr(mw.lang, "de_mail"))
+        self.mail_chk.setChecked(mw.settings.mail)
+        self.mail_chk.toggled.connect(self._mail_toggled)
+        flow.addWidget(self.mail_chk)
         holder = QWidget()
         holder.setLayout(flow)
         scroll = QScrollArea()
@@ -462,8 +466,12 @@ class DeStep(Step):
             if card.radio.isChecked():
                 self.mw.settings.de = opt["id"]
 
+    def _mail_toggled(self, on: bool) -> None:
+        self.mw.settings.mail = on
+
     def apply(self, s):
         s.de = self.mw.settings.de
+        s.mail = self.mail_chk.isChecked()
 
     def retranslate(self):
         super().retranslate()
@@ -472,6 +480,7 @@ class DeStep(Step):
             for lbl in card.findChildren(QLabel):
                 if lbl.objectName() == "badge":
                     lbl.setText(tr(self.lang, opt["badge"]))
+        self.mail_chk.setText(tr(self.lang, "de_mail"))
 
 
 class SummaryStep(Step):
@@ -498,6 +507,7 @@ class SummaryStep(Step):
             ("sum_user", f"{s.fullname} ({s.username})" if s.fullname else s.username),
             ("sum_host", s.hostname),
             ("sum_de", s.de_title()),
+            ("sum_mail", "Claws Mail" if s.mail else tr(self.lang, "sum_no")),
         ]
         for key, value in rows:
             QTreeWidgetItem(self.tree, [tr(self.lang, key), str(value)])

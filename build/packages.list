@@ -87,6 +87,30 @@ upower
 gvfs
 gvfs-daemons
 
+# офис: Writer и Calc без метапакета (Impress/Base/Draw не ставим);
+# Liberation - метрическая замена Times/Arial в docx, hunspell-ru - орфография
+libreoffice-writer
+libreoffice-calc
+libreoffice-l10n-ru
+fonts-liberation
+hunspell-ru
+qpdfview
+# печать: CUPS + автообнаружение сетевых принтеров (cups-browsed, avahi)
+cups
+cups-client
+cups-browsed
+avahi-daemon
+cups-pk-helper
+system-config-printer
+printer-driver-gutenprint
+printer-driver-hpcups
+printer-driver-splix
+printer-driver-brlaser
+# почта; rsync - photon-backup; featherpad - блокнот для текстов
+claws-mail
+rsync
+featherpad
+
 # установщик: PyQt6-мастер + бэкенд (sfdisk, GRUB EFI в /target);
 # e2fsprogs не essential, а mkfs.ext4 нужен установщику и fsck
 e2fsprogs

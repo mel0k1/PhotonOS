@@ -38,6 +38,11 @@
 - База - Debian trixie без метапакетов; документация и man вырезаны на уровне dpkg.
 - Рабочий стол - LXQt 2.1 в духе Deepin: панель-док, тёмная тема Onyxian-Rounded
   с Kvantum Orchis, иконки Papirus, композитор picom (тени, блюр).
+- Офис - LibreOffice Writer и Calc, просмотр PDF (qpdfview), блокнот
+  FeatherPad, орфография (hunspell-ru); печать - CUPS с автообнаружением
+  сетевых принтеров; почта - Claws Mail.
+- photon-welcome - окно первого входа (обновления, принтеры, копия, почта);
+  photon-backup - rsync-копия домашнего каталога по ежедневному таймеру.
 - Русский UI по умолчанию, обои photon-ribbon.
 - Загрузка - plymouth-тема photon-boot: чёрный квадрат с глазами собирается
   кадр за кадром.
@@ -68,6 +73,8 @@ PhotonOS/
 ├── branding/plymouth/photon-boot/  # тема загрузки (кадры анимации)
 ├── overlay/                # файлы в корень образа: LXQt, обои, иконки, брендинг
 ├── installer/              # мастер установки (PyQt6) + бэкенд
+├── welcome/                # photon-welcome: окно первого входа (PyQt6)
+├── backup/photon-backup    # rsync-копия $HOME (CLI + таймер)
 ├── ppm/ppm                 # Photon Package Manager (порт на apt в работе)
 ├── fetch/photon-fetch      # ASCII-сводка о системе
 ├── scripts/                # CI-тесты и генераторы графики
@@ -87,7 +94,8 @@ apt install mmdebstrap squashfs-tools xorriso mtools dosfstools
 
 - [ ] ppm: порт с XBPS на apt
 - [ ] Установщик на диск - отладка мастера
-- [ ] Фирменные приложения
+- [x] Фирменные приложения: photon-welcome, photon-backup
+- [ ] Фирменные приложения: следующий раунд
 
 ## Лицензия
 

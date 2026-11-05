@@ -266,6 +266,8 @@ class Installer:
         ]
         if self.settings.de == "none":
             ops.append(("call", self._purge_desktop))
+        elif not self.settings.mail:
+            ops.append(("call", self._purge_mail))
         return ops
 
     def _purge_desktop(self) -> None:
@@ -290,6 +292,19 @@ class Installer:
         if os.path.lexists(dm):
             os.unlink(dm)
         self.log("окружение снято, система остаётся консольной")
+
+    def _purge_mail(self) -> None:
+        """Почта снята в мастере - удаляем Claws Mail, если он в образе."""
+        r = subprocess.run(["chroot", TARGET, "dpkg-query", "-W", "-f=${Status}",
+                            "claws-mail"], capture_output=True, text=True)
+        if r.returncode != 0 or "install ok installed" not in r.stdout:
+            return
+        r = subprocess.run(["chroot", TARGET, "dpkg", "--purge", "claws-mail"],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise BackendError("dpkg --purge (claws-mail): "
+                               + (r.stderr or r.stdout)[-400:])
+        self.log("почтовый клиент claws-mail удалён (выбор мастера)")
 
     def _clean_runtime(self) -> None:
         # photon-diag — серийная диагностика live-сессии, на диске не нужна

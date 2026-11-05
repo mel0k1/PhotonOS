@@ -76,6 +76,7 @@ STRINGS = {
         "de_badge_default": "по умолчанию",
         "de_badge_min": "минимум",
         "de_badge_soon": "в планах",
+        "de_mail": "Почтовый клиент Claws Mail (уже в образе)",
 
         "sum_h1": "Всё готово к установке",
         "sum_sub": "Проверьте параметры. «Далее» запустит установку.",
@@ -88,6 +89,7 @@ STRINGS = {
         "sum_user": "Пользователь",
         "sum_host": "Компьютер",
         "sum_de": "Окружение",
+        "sum_mail": "Почта",
         "sum_wipe": "диск будет стёрт",
         "sum_yes": "да",
         "sum_no": "нет",
@@ -170,6 +172,7 @@ STRINGS = {
         "de_badge_default": "default",
         "de_badge_min": "minimal",
         "de_badge_soon": "planned",
+        "de_mail": "Claws Mail e-mail client (already in the image)",
 
         "sum_h1": "Ready to install",
         "sum_sub": "Review the settings. “Next” starts the installation.",
@@ -182,6 +185,7 @@ STRINGS = {
         "sum_user": "User",
         "sum_host": "Computer",
         "sum_de": "Desktop",
+        "sum_mail": "E-mail",
         "sum_wipe": "drive will be erased",
         "sum_yes": "yes",
         "sum_no": "no",

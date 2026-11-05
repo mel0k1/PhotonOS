@@ -1,0 +1,6 @@
+[Unit]
+Description=PhotonOS: резервная копия домашнего каталога
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/photon-backup --auto
