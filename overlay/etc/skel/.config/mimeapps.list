@@ -1,0 +1,9 @@
+[Default Applications]
+application/pdf=qpdfview.desktop
+application/rtf=libreoffice-writer.desktop
+application/msword=libreoffice-writer.desktop
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop
+application/vnd.ms-excel=libreoffice-calc.desktop
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=libreoffice-calc.desktop
+text/csv=libreoffice-calc.desktop
+text/plain=featherpad.desktop

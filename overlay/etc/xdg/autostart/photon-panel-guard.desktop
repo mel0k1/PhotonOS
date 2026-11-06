@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PhotonOS panel guard
+Comment=Страховка lxqt-panel 2.1: рестарт, если панель стартовала без геометрии
+Comment[en]=lxqt-panel watchdog: restart if the panel started without geometry
+Exec=/usr/share/photon/panel-guard.sh
+Terminal=false
+NoDisplay=true
+Categories=System;

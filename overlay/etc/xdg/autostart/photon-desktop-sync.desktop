@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=PhotonOS desktop sync
+Comment=Синхронизация ярлыков рабочего стола из /etc/skel/Desktop
+Exec=/bin/sh -c "mkdir -p ${HOME:-/home/anon}/Desktop && cp -n /etc/skel/Desktop/* ${HOME:-/home/anon}/Desktop/ 2>/dev/null; true"
+NoDisplay=true

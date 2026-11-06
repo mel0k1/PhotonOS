@@ -1,0 +1,85 @@
+#!/bin/sh
+# photon-backup - резервная копия домашнего каталога (rsync).
+#   photon-backup ПУТЬ   копия в каталог ПУТЬ (или user@host:/path)
+#   photon-backup        интерактивно: меню подключённых носителей
+#   photon-backup --auto по таймеру: последний успешный путь, молча
+# Кэши, корзина и журнал не копируются. Успешный путь сохраняется в
+# ~/.config/photon/backup.conf - его и использует --auto.
+
+set -eu
+
+CONF="$HOME/.config/photon/backup.conf"
+LOG="$HOME/photon-backup.log"
+SUBDIR="PhotonOS-home"
+FLAGS="-a --exclude=.cache --exclude=.gvfs --exclude=.local/share/Trash
+--exclude=photon-backup.log --exclude=*.iso --exclude=*.tmp"
+
+msg() { printf '%s\n' "$*"; }
+die() { printf 'ОШИБКА: %s\n' "$*" >&2; exit 1; }
+
+save_dest() {
+    mkdir -p "${CONF%/*}"
+    printf 'DEST=%s\n' "$1" > "$CONF"
+}
+
+run_backup() {
+    DEST="$1"; QUIET="$2"
+    case "$DEST" in
+        *:*) ;;  # user@host:/path - сетевой путь, каталог создаёт rsync
+        *) [ -d "$DEST" ] || die "каталог $DEST недоступен"
+           DEST="$DEST/$SUBDIR"; mkdir -p "$DEST" ;;
+    esac
+    msg "== photon-backup: $HOME -> $DEST =="
+    if [ "$QUIET" = "1" ]; then
+        rsync $FLAGS "$HOME/" "$DEST/" >> "$LOG" 2>&1
+    else
+        rsync $FLAGS --info=progress2 "$HOME/" "$DEST/"
+        printf '%s  %s -> %s\n' "$(date '+%F %T')" "$HOME" "$DEST" >> "$LOG"
+    fi
+    msg "готово: $(date '+%F %T'), журнал: $LOG"
+    save_dest "$1"
+}
+
+if [ "${1:-}" = "--auto" ]; then
+    [ -f "$CONF" ] || exit 0
+    DEST=""
+    . "$CONF"
+    [ -n "$DEST" ] || exit 0
+    case "$DEST" in
+        *:*) ;;
+        *) [ -d "$DEST" ] || exit 0 ;;
+    esac
+    exec "$0" "$DEST"
+fi
+
+if [ -n "${1:-}" ]; then
+    run_backup "$1" 0
+    exit 0
+fi
+
+USER_NAME=$(id -un)
+CAND=""
+for d in /media/$USER_NAME/* /run/media/$USER_NAME/*; do
+    [ -d "$d" ] && CAND="$CAND $d"
+done
+[ -n "$CAND" ] || msg "Подключённых носителей не видно - можно указать сетевой путь."
+i=1
+for d in $CAND; do
+    msg "  $i) $d"
+    i=$((i + 1))
+done
+msg "  0) путь вручную (например user@server:/backups)"
+printf 'Куда делать копию? '
+read -r ans
+case "$ans" in
+    ""|0) printf 'Путь: '; read -r d; [ -n "$d" ] || die "путь не указан" ;;
+    *)
+        n=1; d=""
+        for c in $CAND; do
+            [ "$n" -eq "$ans" ] && d="$c"
+            n=$((n + 1))
+        done
+        [ -n "$d" ] || die "нет такого пункта"
+        ;;
+esac
+run_backup "$d" 0

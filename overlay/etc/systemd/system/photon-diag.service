@@ -1,0 +1,12 @@
+[Unit]
+Description=PhotonOS serial diagnostics
+# Пишет срез состояния сессии в /dev/ttyS0 каждые 120 секунд.
+ConditionPathExists=/dev/ttyS0
+
+[Service]
+Type=simple
+ExecStart=/usr/share/photon/diag.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

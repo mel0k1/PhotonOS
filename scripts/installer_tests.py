@@ -56,19 +56,30 @@ check("hostname ок", valid_hostname("photon-pc"))
 check("hostname с точкой — нет", not valid_hostname("ph.o ton".replace(" ", "")))
 
 s = InstallSettings()
-s.de = "macshell"
-check("de_title для MacShell", s.de_title() == "MacShell")
+s.de = "lxqt"
+check("de_title для LXQt", s.de_title() == "LXQt")
 check("все DE имеют бейджи", all("badge" in o and "desc" in o for o in DE_OPTIONS))
-check("MacShell в списке", any(o["id"] == "macshell" for o in DE_OPTIONS))
+check("MacShell убран из списка (отменён)",
+      all(o["id"] != "macshell" for o in DE_OPTIONS))
 check("LXQt по умолчанию", InstallSettings().de == "lxqt")
+check("дефолтный lang=ru", InstallSettings().lang == "ru")
 
-# ── M2: бэкенд установки (dry-run) ──────────────────────────────────
-from photon_install.backend import (BASE_PKGS, DE_PKGS, Installer,  # noqa: E402
-                                    part_path)
+# ── бэкенд установки (Debian-порт, dry-run) ─────────────────────────
+from photon_install.backend import (COPY_EXCLUDES, PURGE_PKGS,  # noqa: E402
+                                    Installer, find_squashfs, part_path)
 
 check("суффикс sda", part_path("sda", 3) == "/dev/sda3")
 check("суффикс nvme", part_path("nvme0n1", 1) == "/dev/nvme0n1p1")
 check("суффикс mmcblk", part_path("mmcblk0", 2) == "/dev/mmcblk0p2")
+
+check("purge: live-boot и live-config",
+      "live-boot" in PURGE_PKGS and "live-config" in PURGE_PKGS)
+check("excludes: machine-id и fstab из squashfs не копируются",
+      "./etc/machine-id" in COPY_EXCLUDES and "./etc/fstab" in COPY_EXCLUDES)
+check("excludes: псевдо-ФС не копируются",
+      all(x in COPY_EXCLUDES for x in ("./proc", "./sys", "./dev", "./run")))
+check("find_squashfs вне live вернёт None", find_squashfs() is None)
+
 
 def build_settings(de, swap):
     s = InstallSettings(lang="ru")
@@ -83,6 +94,7 @@ def build_settings(de, swap):
     s.de = de
     return s
 
+
 def dry_run(s):
     lines = []
     inst = Installer(s, dry_run=True)
@@ -90,12 +102,23 @@ def dry_run(s):
     inst.run()
     return lines, inst
 
+
 lines, inst = dry_run(build_settings("lxqt", True))
-cmds = [l for l in lines if l.startswith(("[",) ) and "$ " in l]
 plain = "\n".join(lines)
 text_cmds = [l.split("$ ", 1)[1] for l in lines if "$ " in l]
 
 check("sfdisk вызван на /dev/sda", any(c.startswith("sfdisk -f /dev/sda") for c in text_cmds))
+check("wipefs идёт ДО sfdisk (иначе он затирает GPT-подпись)",
+      next(i for i, c in enumerate(text_cmds) if c.startswith("wipefs"))
+      < next(i for i, c in enumerate(text_cmds) if c.startswith("sfdisk")))
+check("после sfdisk wipefs всего диска нет",
+      not any(c.startswith("wipefs -a -f /dev/sda")
+              for c in text_cmds[next(i for i, c in enumerate(text_cmds)
+                                      if c.startswith("sfdisk")):]))
+check("группы создаются перед useradd (call _ensure_groups)",
+      any(getattr(o[1], "__name__", "") == "_ensure_groups"
+          for k, _t, os_ in inst.steps if k == "users"
+          for o in os_ if o[0] == "call"))
 check("sfdisk: gpt + ESP + swap + linux",
       all(x in plain for x in ("label: gpt", "type=U", "type=S", "type=L")))
 check("mkfs.vfat на sda1", any(c.startswith("mkfs.vfat") and c.endswith("/dev/sda1")
@@ -104,18 +127,23 @@ check("swap на sda2", any(c.startswith("mkswap") and c.endswith("/dev/sda2")
                           for c in text_cmds))
 check("корень на sda3", any(c.startswith("mkfs.ext4") and c.endswith("/dev/sda3")
                             for c in text_cmds))
-check("xbps-install с набором LXQt",
-      any(c.startswith("xbps-install -r /target -Sy") and "lxqt" in c and "sddm" in c
+check("squashfs смонтирован loop,ro",
+      any(c.startswith("mount -o loop,ro") and "filesystem.squashfs" in c
+          for c in text_cmds))
+check("purge live-пакетов в chroot",
+      any(c.startswith("chroot /target dpkg --purge") and "live-boot" in c
           for c in text_cmds))
 check("grub-install UEFI", any("grub-install --target=x86_64-efi" in c for c in text_cmds))
 check("grub-mkconfig", any("grub-mkconfig -o /boot/grub/grub.cfg" in c for c in text_cmds))
-check("xbps-reconfigure linux-lts", any("xbps-reconfigure -fa linux-lts" in c for c in text_cmds))
+check("шаг initramfs есть (call-операция)",
+      any(key == "kernel" for key, _t, _o in inst.steps))
 check("umount -R /target", any(c == "umount -R /target" for c in text_cmds))
-check("пользователь создан в chroot",
-      any("useradd -m -s /bin/bash -G wheel,audio,video,storage,input,cdrom anya" in c
+check("пользователь создан в chroot (группа sudo)",
+      any("useradd -m -s /bin/bash -G sudo,audio,video,storage,input,cdrom,netdev anya" in c
           for c in text_cmds))
 check("пароли не попадают в журнал", "hunter2" not in plain)
 check("stdin с паролями скрыт", any("пароли скрыты" in l for l in lines))
+check("12 шагов установки", len(inst.steps) == 12)
 
 lines2, _ = dry_run(build_settings("none", False))
 plain2 = "\n".join(lines2)
@@ -123,12 +151,19 @@ text2 = [l.split("$ ", 1)[1] for l in lines2 if "$ " in l]
 check("без swap: корень сразу sda2", any(c.startswith("mkfs.ext4") and c.endswith("/dev/sda2")
                                          for c in text2))
 check("без swap: нет mkswap", "mkswap" not in plain2)
-check("без DE: нет sddm в пакетах",
-      any(c.startswith("xbps-install") and "sddm" not in c and " lxqt" not in c
-          for c in text2))
-check("без DE: нет sddm-сервиса",
-      any(c.startswith("ln -sf /etc/sv/") and c.endswith("/default/sddm")
-          for c in text2) is False)
+check("окружение не влияет на копию squashfs (одна система)",
+      len([c for c in text2 if c.startswith("mount -o loop,ro")]) == 1)
+
+lines_none, inst_none = dry_run(build_settings("none", False))
+ops_clean = [o for k, _t, os_ in inst_none.steps if k == "clean" for o in os_]
+check("без DE: бэкенд добавляет очистку десктоп-стека",
+      any(getattr(o[1], "__name__", "") == "_purge_desktop"
+          for o in ops_clean if o[0] == "call"))
+lines_lxqt, inst_lxqt = dry_run(build_settings("lxqt", True))
+ops_clean_l = [o for k, _t, os_ in inst_lxqt.steps if k == "clean" for o in os_]
+check("с LXQt десктоп не снимается",
+      not any(getattr(o[1], "__name__", "") == "_purge_desktop"
+              for o in ops_clean_l if o[0] == "call"))
 
 nvme_s = build_settings("lxqt", False)
 nvme_s.disk = nvme.path
@@ -139,10 +174,6 @@ check("nvme: корень p2", any(c.startswith("mkfs.ext4") and c.endswith("/de
                              for c in text3))
 check("nvme: ESP p1", any(c.startswith("mkfs.vfat") and c.endswith("/dev/nvme0n1p1")
                           for c in text3))
-check("macshell пока ставится как база (M3)",
-      any(c.startswith("xbps-install") and "hyprland" not in c
-          for c in [l.split("$ ", 1)[1] for l in
-                    (lambda L: L)([x for x in lines2]) if "$ " in l]))
 
 print()
 print("ВСЕ ОК" if not fails else f"ПРОВАЛЕНО: {fails}")

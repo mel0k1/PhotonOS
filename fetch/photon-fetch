@@ -1,6 +1,6 @@
 #!/bin/sh
-# photon-fetch — ASCII-сводка о системе PhotonOS
-# Чистый POSIX sh, внешних зависимостей нет. Лицензия: GPL-3.0+
+# photon-fetch - ASCII-сводка о системе PhotonOS. POSIX sh, без зависимостей.
+# Лицензия: GPL-3.0+
 
 # ---------- цвета ----------
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then

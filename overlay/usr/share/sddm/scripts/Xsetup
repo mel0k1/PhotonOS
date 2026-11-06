@@ -1,0 +1,12 @@
+#!/bin/sh
+# Xsetup - run as root before the login dialog appears
+
+if [ -e /sbin/prime-offload ]; then
+    echo running NVIDIA Prime setup /sbin/prime-offload
+    /sbin/prime-offload
+fi
+
+# picom ДО сессии: иначе, присоединившись позже, он захватывает окно панели
+# с пустым буфером и панель остаётся прозрачной (гонка в TCG/q35)
+pkill -x picom 2>/dev/null
+picom --config /etc/photon/picom.conf --daemon 2>/dev/null

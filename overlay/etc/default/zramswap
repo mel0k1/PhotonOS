@@ -1,0 +1,4 @@
+# PhotonOS: zram на половину RAM; zstd - лучший баланс скорость/сжатие для 2-4 ГБ
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
