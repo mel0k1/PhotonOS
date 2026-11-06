@@ -146,13 +146,17 @@ jobs:
 
   # e2e установки: live-ISO -> photon-installer --auto на виртуальный диск
   # -> перезагрузка -> проверка загрузки установленной системы.
-  # Пока обкатка: рантайм-тест не ломает статус сборки.
+  # Матрица BIOS и EFI/OVMF. Пока обкатка: рантайм-тест не ломает статус сборки.
   install-e2e:
-    name: "E2E: установка на диск (BIOS) и загрузка с него"
+    name: "E2E: установка на диск (${{ matrix.mode }}) и загрузка с него"
     needs: iso
     runs-on: ubuntu-latest
     timeout-minutes: 75
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [bios, efi]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -172,18 +176,18 @@ jobs:
       - name: Установка на виртуальный диск + загрузка с него
         run: |
           ISO=$(ls dist/*.iso | head -1)
-          python3 scripts/ci_install.py --iso "$ISO" --mode bios \
+          python3 scripts/ci_install.py --iso "$ISO" --mode ${{ matrix.mode }} \
             --outdir out/install
 
       - name: Чистка (виртуальный диск не публикуем)
         if: always()
         run: rm -f out/install/disk.qcow2
 
-      - name: "Артефакты: e2e установки"
+      - name: "Артефакты: e2e установки (${{ matrix.mode }})"
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: photon-install-e2e
+          name: photon-install-e2e-${{ matrix.mode }}
           path: out/
           if-no-files-found: warn
           retention-days: 14

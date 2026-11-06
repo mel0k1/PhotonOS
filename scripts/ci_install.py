@@ -26,7 +26,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ci_boot import OVMF_CANDIDATES, QMP, SerialWatch, log, ppm_stats
+from ci_boot import QMP, SerialWatch, find_ovmf, log, ppm_stats
 
 AUTO_CONF = ("DISK=/dev/vda\nUSERNAME=user\nPASSWORD=photon123\n"
              "FULLNAME=Test User\nHOSTNAME=photon-e2e\nTZ=Europe/Moscow\n"
@@ -85,7 +85,7 @@ def start_qemu(qemu, iso, mode, disk_img, run, with_iso: bool, outdir: str):
     if with_iso:
         cmd += ["-cdrom", os.path.abspath(iso), "-boot", "d"]
     if mode == "efi":
-        ovmf = next((p for p in OVMF_CANDIDATES if os.path.exists(p)), None)
+        ovmf = find_ovmf()
         if not ovmf:
             raise RuntimeError("OVMF.fd не найден (apt install ovmf)")
         cmd += ["-bios", ovmf]

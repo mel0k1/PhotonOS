@@ -39,6 +39,14 @@ OVMF_CANDIDATES = (
 )
 
 
+def find_ovmf() -> str | None:
+    """Файрвар EFI: сначала PHOTON_OVMF (локальный прогон из своего префикса)."""
+    env = os.environ.get("PHOTON_OVMF")
+    if env and os.path.exists(env):
+        return env
+    return next((p for p in OVMF_CANDIDATES if os.path.exists(p)), None)
+
+
 def log(msg):
     print(f"[ci-boot {time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -265,7 +273,7 @@ def main():
         "-nic", "user,model=e1000",
     ]
     if args.mode == "efi":
-        ovmf = next((p for p in OVMF_CANDIDATES if os.path.exists(p)), None)
+        ovmf = find_ovmf()
         if not ovmf:
             log("ОШИБКА: OVMF.fd не найден (apt install ovmf)")
             return 2
