@@ -152,9 +152,6 @@ fi
 # ------------------------------------------------- 2. оверлей и брендинг
 log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
 cp -a "$ROOT/overlay/." "$ROOTFS/"
-# в образе всё - root: сборщик кладёт файлы своим uid, а sudo проверяет
-# владельца /etc/sudoers.d и молча игнорирует файлы с чужим uid
-chown -R 0:0 "$ROOTFS"
 chmod +x "$ROOTFS/usr/share/photon/diag.sh" \
        "$ROOTFS/usr/share/photon/desktop-sync.sh" \
        "$ROOTFS/usr/share/photon/panel-guard.sh"
@@ -239,7 +236,10 @@ mkdir -p "$ISO/live"
 cp "$ROOTFS"/boot/vmlinuz-* "$ISO/live/vmlinuz"
 cp "$ROOTFS"/boot/initrd.img-* "$ISO/live/initrd"
 mksquashfs "$ROOTFS" "$ISO/live/filesystem.squashfs" \
-    -comp xz -b 1M -noappend -e boot -e .photon-rootfs-done
+    -comp xz -b 1M -noappend -all-root \
+    -e boot -e .photon-rootfs-done
+# -all-root: файлы сборщика (overlay) с чужим uid -> root; иначе sudo
+# игнорирует /etc/sudoers.d, а установщик переносит uid на диск
 
 # --------------------------------------------------------- 4. загрузчики
 log "загрузчики: isolinux (BIOS) + bootx64.efi (EFI)"
