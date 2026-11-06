@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import glob
 import os
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -257,8 +258,23 @@ class Installer:
             ("cmd", ["mkdir", "-p", SRC_MOUNT], None),
             ("cmd", ["mount", "-o", "loop,ro", shown, SRC_MOUNT], None),
             ("call", self._copy_rootfs),
+            ("call", self._copy_kernel),
         ]
         return ops
+
+    def _copy_kernel(self) -> None:
+        """В squashfs /boot исключён: ядро и initrd берём с live-носителя,
+        без них grub-mkconfig не найдёт ядро, а update-initramfs не соберёт
+        initrd (фаза -u требует существующий файл)."""
+        ver = subprocess.run(["uname", "-r"], capture_output=True,
+                             text=True).stdout.strip()
+        src_dir = os.path.dirname(find_squashfs()
+                                  or "/run/live/medium/live/filesystem.squashfs")
+        os.makedirs(f"{TARGET}/boot", exist_ok=True)
+        for src, dst in (("vmlinuz", f"/boot/vmlinuz-{ver}"),
+                         ("initrd", f"/boot/initrd.img-{ver}")):
+            shutil.copyfile(os.path.join(src_dir, src), TARGET + dst)
+        self.log(f"ядро {ver} скопировано в /target/boot")
 
     def _copy_rootfs(self) -> None:
         excludes = []

@@ -235,11 +235,11 @@ log "mksquashfs -> live/filesystem.squashfs"
 mkdir -p "$ISO/live"
 cp "$ROOTFS"/boot/vmlinuz-* "$ISO/live/vmlinuz"
 cp "$ROOTFS"/boot/initrd.img-* "$ISO/live/initrd"
+# -all-root: файлы сборщика (overlay) с чужим uid -> root; иначе sudo
+# игнорирует /etc/sudoers.d, а установщик переносит uid на диск
 mksquashfs "$ROOTFS" "$ISO/live/filesystem.squashfs" \
     -comp xz -b 1M -noappend -all-root \
     -e boot -e .photon-rootfs-done
-# -all-root: файлы сборщика (overlay) с чужим uid -> root; иначе sudo
-# игнорирует /etc/sudoers.d, а установщик переносит uid на диск
 
 # --------------------------------------------------------- 4. загрузчики
 log "загрузчики: isolinux (BIOS) + bootx64.efi (EFI)"

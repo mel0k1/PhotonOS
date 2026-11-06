@@ -175,6 +175,10 @@ jobs:
           python3 scripts/ci_install.py --iso "$ISO" --mode bios \
             --outdir out/install
 
+      - name: Чистка (виртуальный диск не публикуем)
+        if: always()
+        run: rm -f out/install/disk.qcow2
+
       - name: "Артефакты: e2e установки"
         if: always()
         uses: actions/upload-artifact@v4
