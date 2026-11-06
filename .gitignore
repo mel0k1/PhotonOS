@@ -11,3 +11,4 @@ dist/
 build/.stage-overlay/
 void-mklive/
 build/.work/
+out/
