@@ -3,8 +3,10 @@
 # на фоне цвета кадра (#030303). Кадры вписываются в экран с сохранением
 # пропорций, поэтому тема корректна на любых разрешениях и в 16:9, и в 4:3.
 
-window.SetBackgroundTopColor(0.012, 0.012, 0.012);
-window.SetBackgroundBottomColor(0.012, 0.012, 0.012);
+# Window - глобал script-плагина (window в нижнем регистре = ошибка рантайма,
+# тема молча не рисует и остаётся текст консоли).
+Window.SetBackgroundTopColor(0.012, 0.012, 0.012);
+Window.SetBackgroundBottomColor(0.012, 0.012, 0.012);
 
 n_frames = 70;
 divider = 4;   # тиков refresh на один кадр: ~15 fps при ~60 Гц
