@@ -62,9 +62,12 @@ fi
 # initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
 DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
 
-# сервисы: дисплейный менеджер и сеть; zram/earlyoom - слабые ПК
+# сервисы: дисплейный менеджер и сеть; zram/earlyoom - слабые ПК;
+# serial-getty - явно: после plymouth.ignore-serial-consoles и без него
+# console=ttyS0 генератор getty сам его не включит
 systemctl enable sddm.service NetworkManager.service photon-diag.service \
-    zramswap.service earlyoom.service 2>/dev/null || true
+    zramswap.service earlyoom.service serial-getty@ttyS0.service \
+    2>/dev/null || true
 
 # EFI-загрузчик со встроенным конфигом (bg.png кладёт предыдущий хук);
 # пишем в /root - mmdebstrap вычищает /tmp чрута.
@@ -82,11 +85,11 @@ background_image (memdisk)/boot/grub/bg.png
 # search обязателен: без него /live/vmlinuz ищется в memdisk ("file not found")
 search --no-floppy --set=root --file /live/vmlinuz
 menuentry "PhotonOS Live" {
-    linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
+    linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
     initrd /live/initrd
 }
 menuentry "PhotonOS Live (RAM)" {
-    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200
+    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
     initrd /live/initrd
 }
 GRUB
@@ -224,6 +227,13 @@ cp -a "$ROOT/branding/plymouth/photon-boot" \
 ln -sfn /usr/share/plymouth/themes/photon-boot/photon-boot.plymouth \
     "$ROOTFS/usr/share/plymouth/themes/default.plymouth"
 
+# initramfs пересобрать ПОСЛЕ установки темы: plymouth-хук пакует дефолтную
+# тему, её script-плагин и кадры. Хук отработал в chroot до темы — в initrd
+# оставался только fallback (серый фон с точками вместо анимации).
+mount -t proc proc "$ROOTFS/proc"
+chroot "$ROOTFS" update-initramfs -u -k all
+umount "$ROOTFS/proc"
+
 # hostname
 echo photon > "$ROOTFS/etc/hostname"
 
@@ -264,12 +274,12 @@ MENU TITLE Photon OS
 label photon
     menu label PhotonOS Live
     kernel /live/vmlinuz
-    append initrd=/live/initrd boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200
+    append initrd=/live/initrd boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
 
 label ram
     menu label PhotonOS Live (RAM)
     kernel /live/vmlinuz
-    append initrd=/live/initrd boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200
+    append initrd=/live/initrd boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
 EOF
 fi
 

@@ -496,10 +496,13 @@ class Installer:
                            check=True)
 
     def _grub_serial(self) -> None:
-        """Серийная консоль в установленной системе: отладка на железе и CI;
-        systemd-getty-generator сам поднимет getty на ttyS0."""
+        """Параметры ядра установленной системы: serial-консоль для отладки
+        на железе и CI; plymouth.ignore-serial-consoles - чтобы splash не
+        глушился из-за serial (иначе загрузка выглядит как бесконечный текст).
+        Getty на ttyS0 поднимается явным serial-getty@ttyS0."""
         path = f"{TARGET}/etc/default/grub"
-        value = 'GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200"'
+        value = ('GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200 '
+                 'plymouth.ignore-serial-consoles"')
         lines = []
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
