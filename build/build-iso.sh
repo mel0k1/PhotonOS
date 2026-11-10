@@ -223,7 +223,14 @@ mkdir -p "$ROOTFS/usr/share/plymouth/themes"
 cp -a "$ROOT/branding/plymouth/photon-boot" \
     "$ROOTFS/usr/share/plymouth/themes/photon-boot"
 
-# дефолтная plymouth-тема = photon-boot (альтернатива вручную — live ISO)
+# дефолтная plymouth-тема = photon-boot: plymouthd.conf главнее
+# plymouthd.defaults, а там у Debian Theme=ceratopsian (темы в системе нет) -
+# без явного конфига plymouthd молча рисует builtin-сплэш (серые точки)
+mkdir -p "$ROOTFS/etc/plymouth"
+cat > "$ROOTFS/etc/plymouth/plymouthd.conf" <<'EOF'
+[Daemon]
+Theme=photon-boot
+EOF
 ln -sfn /usr/share/plymouth/themes/photon-boot/photon-boot.plymouth \
     "$ROOTFS/usr/share/plymouth/themes/default.plymouth"
 
