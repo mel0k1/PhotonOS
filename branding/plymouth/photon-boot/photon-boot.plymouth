@@ -1,4 +1,6 @@
-[photon-boot]
+[Plymouth Theme]
+Name=PhotonOS
+Description=PhotonOS boot animation
 ModuleName=script
 
 [script]
