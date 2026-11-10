@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=PhotonOS audio
+Comment=Старт PipeWire и WirePlumber в live-сессии
+Exec=/bin/sh -c "systemctl --user start pipewire.service wireplumber.service pipewire-pulse.service || true"
+NoDisplay=true

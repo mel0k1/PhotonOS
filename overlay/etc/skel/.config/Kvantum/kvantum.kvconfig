@@ -1,0 +1,4 @@
+[Theme]
+# Kvantum-тема виджетов под LXQt-тему Onyxian-Rounded: тёмная, без
+# прозрачности (OrchisDark — прозрачный вариант, тоже вендорится)
+name=Orchis-solidDark

@@ -1,6 +1,0 @@
-[photon-boot]
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/photon-boot
-ScriptFile=/usr/share/plymouth/themes/photon-boot/photon-boot.script

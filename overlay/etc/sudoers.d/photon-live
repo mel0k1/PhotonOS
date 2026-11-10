@@ -1,0 +1,3 @@
+# PhotonOS live: sudo без пароля только в live-сессии;
+# установщик снимает это правило в установленной системе
+anon ALL=(ALL) NOPASSWD: ALL

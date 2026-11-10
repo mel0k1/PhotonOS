@@ -1,8 +1,7 @@
-NAME="Photon OS"
-PRETTY_NAME="Photon OS 0.1 (Void base)"
-ID=photon
-ID_LIKE=void
-VERSION_ID=0.1
+NAME="PhotonOS"
+PRETTY_NAME="PhotonOS 0.2 (Debian base)"
+ID=photonos
+VERSION_ID="0.2"
 BUILD_ID=rolling
 HOME_URL="https://github.com/mel0k1/PhotonOS"
 SUPPORT_URL="https://github.com/mel0k1/PhotonOS/issues"

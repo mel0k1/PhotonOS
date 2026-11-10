@@ -15,16 +15,8 @@ DE_OPTIONS = [
         "id": "lxqt",
         "title": "LXQt",
         "badge": "de_badge_default",
-        "desc": "Фирменный вариант PhotonOS: лёгкий, оформлен в духе Deepin "
-                "(док снизу, Arc + photon).",
-        "available": True,
-    },
-    {
-        "id": "macshell",
-        "title": "MacShell",
-        "badge": "de_badge_exp",
-        "desc": "Оболочка в стиле macOS Tahoe для Hyprland (Wayland): док, "
-                "менюбар, Spotlight. github.com/0-ss/MacShell.",
+        "desc": "Фирменный вариант PhotonOS: лёгкий, в духе Deepin — тема "
+                "Onyxian-Rounded, док снизу.",
         "available": True,
     },
     {
@@ -72,6 +64,7 @@ class InstallSettings:
     password: str = ""
     hostname: str = ""
     de: str = "lxqt"
+    mail: bool = True       # Claws Mail входит в образ; галочка снимает его при установке
     disks: list = field(default_factory=list)   # кэш опроса для сводки
 
     def de_title(self) -> str:
@@ -87,3 +80,58 @@ def valid_login(s: str) -> bool:
 
 def valid_hostname(s: str) -> bool:
     return bool(HOST_RE.match(s))
+
+
+# ── автоустановка: photon-auto.conf на live-носителе ────────────────────
+
+_TRUE = ("yes", "true", "1", "y")
+
+
+def parse_auto_conf(text: str) -> dict:
+    """KEY=VALUE построчно; '#' - комментарий. Ключи верхним регистром."""
+    kv = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            raise ValueError(f"строка без '=': {line!r}")
+        k, v = (x.strip() for x in line.split("=", 1))
+        if not k:
+            raise ValueError("пустой ключ")
+        kv[k.upper()] = v
+    return kv
+
+
+def auto_settings(kv: dict) -> InstallSettings:
+    s = InstallSettings()
+    if kv.get("LOCALE") in ("ru", "en"):
+        s.lang = kv["LOCALE"]
+    s.tz = kv.get("TZ", "")
+    s.layout = kv.get("LAYOUT", "us")
+    s.variant = kv.get("VARIANT", "")
+    s.disk = kv.get("DISK", "")
+    s.swap = kv.get("SWAP", "no").lower() in _TRUE
+    s.fullname = kv.get("FULLNAME", "")
+    s.username = kv.get("USERNAME", "")
+    s.password = kv.get("PASSWORD", "")
+    s.hostname = kv.get("HOSTNAME", "photon")
+    if kv.get("DE") in ("lxqt", "none"):
+        s.de = kv["DE"]
+    s.mail = kv.get("MAIL", "yes").lower() in _TRUE
+    return s
+
+
+def validate_auto(s: InstallSettings) -> str:
+    """'' или текст ошибки (для serial/TTY - только печатный вывод)."""
+    if not s.disk:
+        return "DISK не задан (например DISK=/dev/sda)"
+    if not s.username:
+        return "USERNAME не задан"
+    if not valid_login(s.username):
+        return f"USERNAME некорректен: {s.username}"
+    if len(s.password) < 6:
+        return "PASSWORD короче 6 символов"
+    if not valid_hostname(s.hostname):
+        return f"HOSTNAME некорректен: {s.hostname}"
+    return ""

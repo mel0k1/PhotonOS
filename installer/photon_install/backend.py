@@ -1,18 +1,13 @@
-"""Бэкенд установки PhotonOS (M2): разметка -> xbps -> GRUB -> fstab.
+"""Бэкенд установки PhotonOS: разметка -> копия live-squashfs -> GRUB -> fstab.
 
-Чистый python, без Qt: мастер вызывает Installer из рабочего потока,
-прогресс приходит через колбэки. Каждый шаг = список «операций»:
-
-    ("cmd",  argv, stdin_or_None)   — внешняя команда
-    ("file", path, content, mode)   — запись файла в /target
-    ("call", callable)              — python-действие (копирование файлов)
-
-В dry-run операции только логируются — так бэкенд тестируется без диска.
-
-Пароли никогда не попадают в журнал: stdin команд с паролями маскируется.
+Чистый python без Qt: мастер вызывает Installer из рабочего потока, прогресс -
+через колбэки. Шаг = список операций ("cmd"/"file"/"call"); в dry-run они
+только логируются. Источник - squashfs live-образа: система 1:1 с live-ISO,
+без сети. Пароли в журнал не попадают (stdin маскируется).
 """
 from __future__ import annotations
 
+import glob
 import os
 import shutil
 import subprocess
@@ -24,46 +19,55 @@ from .settings import InstallSettings
 
 TARGET = "/target"
 LOG_PATH = "/tmp/photon-installer.log"
+SRC_MOUNT = "/run/photon-src"
 
-REPO = "https://repo-default.voidlinux.org/current"
 
-# База любой установки (UEFI).
-BASE_PKGS = [
-    "base-system", "linux-lts", "linux-firmware-network",
-    "grub-x86_64-efi", "chrony", "nano", "sudo", "NetworkManager",
+def boot_mode() -> str:
+    """Режим загрузки live-сессии: efi (есть /sys/firmware/efi) или bios."""
+    return "efi" if os.path.isdir("/sys/firmware/efi") else "bios"
+
+# Где live-boot монтирует носитель, и как называется корневой squashfs.
+SQUASHFS_CANDIDATES = [
+    "/run/live/medium/live/filesystem.squashfs",
+    "/lib/live/mount/medium/live/filesystem.squashfs",
+    "/run/live/medium/*.squashfs",
+    "/lib/live/mount/medium/*.squashfs",
 ]
 
-# Наборы по окружению (шаг «Окружение»).
-DE_PKGS = {
-    "lxqt": [
-        "xorg", "sddm", "lxqt", "pcmanfm-qt", "qterminal", "lximage-qt",
-        "lxqt-archiver", "obconf-qt", "lxqt-powermanagement",
-        "xdg-desktop-portal-lxqt", "openbox", "picom", "papirus-icon-theme",
-        "arc-theme", "noto-fonts-ttf", "xdg-user-dirs",
-        "network-manager-applet",
-    ],
-    "none": [],
-    # MacShell (M3, docs/MACSHELL.md): Hyprland + Quickshell.
-    # hyprland/hyprlock/hypridle/xdg-desktop-portal-hyprland — наши пакеты
-    # (pkg/srcpkgs, попадают в ISO через локальный репозиторий);
-    # quickshell/awww/kitty/... — из репозитория Void.
-    "macshell": [
-        "hyprland", "hyprlock", "hypridle", "xdg-desktop-portal-hyprland",
-        "quickshell", "awww", "kitty", "cliphist", "grim", "slurp",
-        "wl-clipboard", "wf-recorder", "brightnessctl", "inotify-tools",
-        "pipewire", "wireplumber", "playerctl", "qt6ct", "font-inter",
-        "noto-fonts-emoji", "polkit-gnome", "xdg-desktop-portal",
-        "xdg-desktop-portal-gtk", "fastfetch", "noto-fonts-ttf",
-        "xdg-user-dirs",
-    ],
-}
+# Каталоги-псевдофайловые системы: из squashfs не копируются, создаются пустыми.
+PSEUDO_DIRS = [
+    ("proc", 0o555), ("sys", 0o555), ("dev", 0o755), ("run", 0o755),
+    ("tmp", 0o1777), ("media", 0o755), ("mnt", 0o755), ("live", 0o755),
+]
 
-# runit-сервисы в runsvdir/default (сами директории /etc/sv приходят пакетами)
-SERVICES_BASE = ["dbus", "elogind", "NetworkManager", "chronyd"]
-SERVICES_DE = {"lxqt": ["sddm"], "none": [], "macshell": ["sddm"]}
+# Файлы, которые установщик перезаписывает сам (из squashfs не нужны).
+COPY_EXCLUDES = [
+    "./proc", "./sys", "./dev", "./run", "./tmp", "./media", "./mnt",
+    "./live", "./target",
+    "./etc/fstab", "./etc/hostname", "./etc/hosts", "./etc/resolv.conf",
+    "./etc/machine-id", "./var/lib/dbus/machine-id",
+]
 
-USER_GROUPS = "wheel,audio,video,storage,input,cdrom"
+# Live-специфика установленной системе не нужна: live-механика
+# (загрузка со squashfs) и утилита автотестов.
+PURGE_PKGS = ["live-boot", "live-config", "live-tools", "user-setup", "xdotool"]
 
+# Десктоп-стек для варианта «Без окружения»: копия squashfs всегда полная,
+# поэтому DE снимается dpkg-очисткой уже в /target (офлайн, без сети).
+DESKTOP_PKGS = [
+    "sddm", "lxqt-core", "lxqt-panel", "lxqt-runner", "lxqt-session",
+    "lxqt-archiver", "lxqt-powermanagement", "lxqt-policykit", "lxqt-sudo",
+    "pcmanfm-qt", "qterminal", "lximage-qt", "openbox", "obconf-qt",
+    "picom", "xdg-desktop-portal-lxqt", "xdg-desktop-portal-gtk",
+    "papirus-icon-theme", "arc-theme", "qt6ct", "qt6-style-kvantum",
+    "lxqt-themes", "network-manager-gnome",
+    "xserver-xorg", "xserver-xorg-video-all", "xserver-xorg-input-libinput",
+    "xserver-xorg-core",
+]
+
+USER_GROUPS = "sudo,audio,video,storage,input,cdrom,netdev"
+
+LANGS = {"ru": "ru_RU.UTF-8", "en": "en_US.UTF-8"}
 LOCALES = ["en_US.UTF-8 UTF-8", "ru_RU.UTF-8 UTF-8"]
 
 
@@ -77,11 +81,20 @@ def part_path(disk_name: str, index: int) -> str:
     return f"/dev/{disk_name}{sep}{index}"
 
 
+def find_squashfs() -> str | None:
+    """Поиск корневого squashfs live-носителя."""
+    for pattern in SQUASHFS_CANDIDATES:
+        hits = sorted(glob.glob(pattern))
+        for hit in hits:
+            if os.path.isfile(hit) and os.path.getsize(hit) > 0:
+                return hit
+    return None
+
+
 @dataclass
 class Installer:
     settings: InstallSettings
     dry_run: bool = False
-    repo: str = REPO
     log_path: str = LOG_PATH
 
     # колбэки: on_step(key, i, total), on_log(text), on_done()
@@ -91,6 +104,13 @@ class Installer:
 
     steps: list = field(default_factory=list, init=False)
     _log_fh: object = None
+
+    # EFI или BIOS — определяется по live-сессии один раз
+    @property
+    def mode(self) -> str:
+        if not hasattr(self, "_mode"):
+            self._mode = boot_mode()
+        return self._mode
 
     # ── журнал ──────────────────────────────────────────────────────────
     def log(self, text: str) -> None:
@@ -138,23 +158,19 @@ class Installer:
         if d is None:
             raise BackendError(f"диск {s.disk} не найден в опросе — обновите список")
 
-        pkgs = BASE_PKGS + DE_PKGS.get(s.de, [])
-        services = SERVICES_BASE + SERVICES_DE.get(s.de, [])
         steps = [
             ("part", "Разметка диска (sfdisk)", self._ops_partition(d)),
             ("mkfs", "Файловые системы", self._ops_mkfs(d)),
             ("mount", "Монтирование /target", self._ops_mount(d)),
-            ("pkgs", "Установка базовой системы (xbps)",
-             self._ops_packages(pkgs)),
-            ("fstab", "fstab и точки монтирования", self._ops_fstab(d)),
+            ("copy", "Копирование системы на диск", self._ops_copy()),
             ("chroot", "Подготовка chroot (/proc, /dev, /sys)", self._ops_bind()),
+            ("clean", "Очистка live-компонентов", self._ops_clean()),
+            ("fstab", "fstab и точки монтирования", self._ops_fstab(d)),
             ("config", "Настройка системы", self._ops_config()),
             ("users", "Пользователи и пароли", self._ops_users()),
-            ("svc", "Сервисы runit", self._ops_services(services)),
-            ("brand", "Брендинг PhotonOS", self._ops_branding()),
-            ("boot", "Загрузчик GRUB (UEFI)", self._ops_bootloader()),
-            ("kernel", "Initramfs (xbps-reconfigure linux-lts)",
-             self._ops_initramfs()),
+            ("boot", f"Загрузчик GRUB ({self.mode.upper()})",
+             self._ops_bootloader(d)),
+            ("kernel", "Initramfs (update-initramfs)", self._ops_initramfs()),
             ("umount", "Размонтирование", self._ops_umount(d)),
         ]
         return steps
@@ -165,23 +181,50 @@ class Installer:
                 return t
         return key
 
+    # ── разделы ─────────────────────────────────────────────────────────
+    def _root_part(self, d) -> str:
+        # EFI: ESP=1, swap=2 (если есть) → корень последний;
+        # BIOS (MBR): swap=1 → корень последний, ESP нет
+        if self.mode == "efi":
+            return part_path(d.name, 3 if self.settings.swap else 2)
+        return part_path(d.name, 2 if self.settings.swap else 1)
+
+    def _esp_part(self, d):
+        return part_path(d.name, 1) if self.mode == "efi" else None
+
+    def _swap_part(self, d):
+        n = 2 if self.mode == "efi" else 1
+        return part_path(d.name, n) if self.settings.swap else None
+
     # ── операции по шагам ───────────────────────────────────────────────
     def _ops_partition(self, d) -> list:
         s = self.settings
-        lines = ["label: gpt",
-                 "size=512MiB, type=U, bootable"]
-        if s.swap:
-            lines.append("size=4GiB, type=S")
-        lines.append("type=L")
+        if self.mode == "efi":
+            lines = ["label: gpt",
+                     "size=512MiB, type=U, bootable"]
+            if s.swap:
+                lines.append("size=4GiB, type=S")
+            lines.append("type=L")
+        else:
+            # MBR: GRUB core.img живёт в post-MBR gap, ESP не нужен
+            lines = ["label: dos"]
+            if s.swap:
+                lines += ["size=4GiB, type=S", "type=L, bootable"]
+            else:
+                lines.append("type=L, bootable")
         script = "\n".join(lines) + "\n"
-        return [("cmd", ["sfdisk", "-f", d.path], script)]
+        # wipefs ДО sfdisk: после разметки он обнулил бы подпись EFI PART свежего GPT
+        return [("cmd", ["wipefs", "-a", "-f", d.path], None),
+                ("cmd", ["sfdisk", "-f", d.path], script)]
 
     def _ops_mkfs(self, d) -> list:
         s = self.settings
-        ops = [("cmd", ["wipefs", "-a", "-f", d.path], None),
-               ("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
-                        part_path(d.name, 1)], None)]
-        idx = 2
+        ops = []
+        idx = 1
+        if self.mode == "efi":
+            ops.append(("cmd", ["mkfs.vfat", "-F32", "-n", "ESP",
+                                part_path(d.name, 1)], None))
+            idx = 2
         if s.swap:
             ops.append(("cmd", ["mkswap", "-L", "swap",
                                 part_path(d.name, idx)], None))
@@ -191,43 +234,145 @@ class Installer:
                             part_path(d.name, idx)], None))
         return ops
 
-    def _root_part(self, d) -> str:
-        # ESP=1, swap=2 (если есть) → корень последний
-        return part_path(d.name, 3 if self.settings.swap else 2)
-
-    def _esp_part(self, d) -> str:
-        return part_path(d.name, 1)
-
-    def _swap_part(self, d):
-        return part_path(d.name, 2) if self.settings.swap else None
-
     def _ops_mount(self, d) -> list:
-        return [
+        ops = [
             ("cmd", ["mkdir", "-p", TARGET], None),
             ("cmd", ["mount", "-o", "defaults,noatime",
                      self._root_part(d), TARGET], None),
-            ("cmd", ["mkdir", "-p", f"{TARGET}/boot/efi"], None),
-            ("cmd", ["mount", self._esp_part(d), f"{TARGET}/boot/efi"], None),
         ]
+        if self.mode == "efi":
+            ops += [("cmd", ["mkdir", "-p", f"{TARGET}/boot/efi"], None),
+                    ("cmd", ["mount", self._esp_part(d),
+                             f"{TARGET}/boot/efi"], None)]
+        return ops
 
-    def _ops_packages(self, pkgs: list) -> list:
+    def _ops_copy(self) -> list:
+        """Squashfs live-образа -> /target (tar-поток с исключениями)."""
+        src_sq = find_squashfs()
+        if src_sq is None and not self.dry_run:
+            raise BackendError(
+                "не найден filesystem.squashfs live-носителя "
+                "(запускать из live-сессии PhotonOS/Debian)")
+        shown = src_sq or "/run/live/medium/live/filesystem.squashfs"
+        ops = [
+            ("cmd", ["mkdir", "-p", SRC_MOUNT], None),
+            ("cmd", ["mount", "-o", "loop,ro", shown, SRC_MOUNT], None),
+            ("call", self._copy_rootfs),
+            ("call", self._copy_kernel),
+        ]
+        return ops
+
+    def _copy_kernel(self) -> None:
+        """В squashfs /boot исключён: ядро и initrd берём с live-носителя,
+        без них grub-mkconfig не найдёт ядро, а update-initramfs не соберёт
+        initrd (фаза -u требует существующий файл)."""
+        ver = subprocess.run(["uname", "-r"], capture_output=True,
+                             text=True).stdout.strip()
+        src_dir = os.path.dirname(find_squashfs()
+                                  or "/run/live/medium/live/filesystem.squashfs")
+        os.makedirs(f"{TARGET}/boot", exist_ok=True)
+        for src, dst in (("vmlinuz", f"/boot/vmlinuz-{ver}"),
+                         ("initrd", f"/boot/initrd.img-{ver}")):
+            shutil.copyfile(os.path.join(src_dir, src), TARGET + dst)
+        self.log(f"ядро {ver} скопировано в /target/boot")
+
+    def _copy_rootfs(self) -> None:
+        excludes = []
+        for ex in COPY_EXCLUDES:
+            excludes += ["--exclude", ex]
+        p1 = subprocess.Popen(
+            ["tar", "-C", SRC_MOUNT, "-cf", "-", *excludes, "."],
+            stdout=subprocess.PIPE)
+        p2 = subprocess.Popen(["tar", "-C", TARGET, "-xf", "-"],
+                              stdin=p1.stdout)
+        p1.stdout.close()
+        p2.communicate()
+        if p1.wait() != 0 or p2.returncode != 0:
+            raise BackendError("копирование rootfs не удалось (tar)")
+        # каталоги-точки монтирования, исключённые из копии
+        for name, mode in PSEUDO_DIRS:
+            path = os.path.join(TARGET, name)
+            os.makedirs(path, exist_ok=True)
+            os.chmod(path, mode)
+        self.log(f"скопирована live-система из {SRC_MOUNT} -> {TARGET}")
+
+    def _ops_bind(self) -> list:
         return [
-            ("cmd", ["mkdir", "-p", f"{TARGET}/etc/xbps.d"], None),
-            ("call", self._copy_xbps_conf),
-            ("cmd", ["xbps-install", "-r", TARGET, "-Sy", "-R", self.repo,
-                     *pkgs], None),
+            ("cmd", ["mount", "-t", "proc", "proc", f"{TARGET}/proc"], None),
+            ("cmd", ["mount", "--rbind", "/dev", f"{TARGET}/dev"], None),
+            ("cmd", ["mount", "--make-rslave", f"{TARGET}/dev"], None),
+            ("cmd", ["mount", "--rbind", "/sys", f"{TARGET}/sys"], None),
+            ("cmd", ["mount", "--make-rslave", f"{TARGET}/sys"], None),
         ]
 
-    def _copy_xbps_conf(self) -> None:
-        """Репозитории live-сессии -> /target, чтобы xbps-install -r видел их."""
-        os.makedirs(f"{TARGET}/etc/xbps.d", exist_ok=True)
-        for src_dir in ("/usr/share/xbps.d", "/etc/xbps.d"):
-            if not os.path.isdir(src_dir):
-                continue
-            for f in os.listdir(src_dir):
-                if f.endswith(".conf") and "*-repository" in f:
-                    shutil.copy2(os.path.join(src_dir, f),
-                                 f"{TARGET}/etc/xbps.d/{f}")
+    def _ops_clean(self) -> list:
+        """Live-механика в установленной системе не нужна."""
+        ops = [
+            ("cmd", ["chroot", TARGET, "dpkg", "--purge", *PURGE_PKGS], None),
+            ("call", self._clean_runtime),
+        ]
+        if self.settings.de == "none":
+            ops.append(("call", self._purge_desktop))
+        elif not self.settings.mail:
+            ops.append(("call", self._purge_mail))
+        return ops
+
+    def _purge_desktop(self) -> None:
+        """«Без окружения»: снимаем десктоп-стек (только установленные)."""
+        todo = []
+        for pkg in DESKTOP_PKGS:
+            r = subprocess.run(["chroot", TARGET, "dpkg-query", "-W", "-f=${Status}",
+                                pkg], capture_output=True, text=True)
+            if r.returncode == 0 and "install ok installed" in r.stdout:
+                todo.append(pkg)
+        if not todo:
+            self.log("десктоп-стек уже отсутствует")
+            return
+        self.log("снимается окружение: " + " ".join(todo))
+        r = subprocess.run(["chroot", TARGET, "dpkg", "--purge", *todo],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise BackendError("dpkg --purge (окружение): "
+                               + (r.stderr or r.stdout)[-400:])
+        # дисплейный менеджер ушёл вместе с пакетом — сносим алиас на всякий случай
+        dm = f"{TARGET}/etc/systemd/system/display-manager.service"
+        if os.path.lexists(dm):
+            os.unlink(dm)
+        self.log("окружение снято, система остаётся консольной")
+
+    def _purge_mail(self) -> None:
+        """Почта снята в мастере - удаляем Claws Mail, если он в образе."""
+        r = subprocess.run(["chroot", TARGET, "dpkg-query", "-W", "-f=${Status}",
+                            "claws-mail"], capture_output=True, text=True)
+        if r.returncode != 0 or "install ok installed" not in r.stdout:
+            return
+        r = subprocess.run(["chroot", TARGET, "dpkg", "--purge", "claws-mail"],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise BackendError("dpkg --purge (claws-mail): "
+                               + (r.stderr or r.stdout)[-400:])
+        self.log("почтовый клиент claws-mail удалён (выбор мастера)")
+
+    def _clean_runtime(self) -> None:
+        # photon-diag — серийная диагностика live-сессии, на диске не нужна
+        diag = f"{TARGET}/etc/systemd/system/multi-user.target.wants/photon-diag.service"
+        if os.path.lexists(diag):
+            os.unlink(diag)
+            self.log("photon-diag.service отключён")
+        # sudo без пароля — только для live-юзера, на диске не нужен
+        live_sudo = f"{TARGET}/etc/sudoers.d/photon-live"
+        if os.path.lexists(live_sudo):
+            os.unlink(live_sudo)
+            self.log("sudoers-правило live-сессии удалено")
+        # machine-id перегенерируется при первой загрузке
+        mid = f"{TARGET}/etc/machine-id"
+        with open(mid, "w") as f:
+            pass
+        dbus_mid = f"{TARGET}/var/lib/dbus/machine-id"
+        if os.path.lexists(dbus_mid):
+            os.unlink(dbus_mid)
+        os.symlink("/etc/machine-id", dbus_mid)
+        self.log("machine-id очищен (перегенерация при первой загрузке)")
 
     def _ops_fstab(self, d) -> list:
         def gen() -> None:
@@ -247,9 +392,10 @@ class Installer:
             fstab.append(
                 f"UUID={uuids[self._root_part(d)]} / ext4 "
                 "defaults,noatime 0 1")
-            fstab.append(
-                f"UUID={uuids[self._esp_part(d)]} /boot/efi vfat "
-                "defaults,noatime 0 2")
+            if self.mode == "efi":
+                fstab.append(
+                    f"UUID={uuids[self._esp_part(d)]} /boot/efi vfat "
+                    "defaults,noatime 0 2")
             if self.settings.swap and self._swap_part(d) in uuids:
                 fstab.append(
                     f"UUID={uuids[self._swap_part(d)]} none swap sw 0 0")
@@ -259,15 +405,6 @@ class Installer:
             self.log("записан /etc/fstab:\n" + content)
         return [("call", gen)]
 
-    def _ops_bind(self) -> list:
-        return [
-            ("cmd", ["mount", "-t", "proc", "proc", f"{TARGET}/proc"], None),
-            ("cmd", ["mount", "--rbind", "/dev", f"{TARGET}/dev"], None),
-            ("cmd", ["mount", "--make-rslave", f"{TARGET}/dev"], None),
-            ("cmd", ["mount", "--rbind", "/sys", f"{TARGET}/sys"], None),
-            ("cmd", ["mount", "--make-rslave", f"{TARGET}/sys"], None),
-        ]
-
     def _ops_config(self) -> list:
         s = self.settings
         ops = []
@@ -275,89 +412,167 @@ class Installer:
         def hostname() -> None:
             with open(f"{TARGET}/etc/hostname", "w") as f:
                 f.write(s.hostname + "\n")
-            with open(f"{TARGET}/etc/hosts", "a") as f:
+            with open(f"{TARGET}/etc/hosts", "w") as f:
+                f.write("127.0.0.1  localhost\n")
                 f.write(f"127.0.1.1  {s.hostname}  {s.hostname}.localdomain\n")
+                f.write("::1  localhost ip6-localhost ip6-loopback\n")
         ops.append(("call", hostname))
 
         def locales() -> None:
-            path = f"{TARGET}/etc/default/libc-locales"
+            lang = LANGS.get(s.lang, LANGS["en"])
+            # /etc/locale.gen: обе локали раскомментированы
+            path = f"{TARGET}/etc/locale.gen"
             lines = []
             if os.path.exists(path):
                 with open(path, encoding="utf-8") as f:
                     lines = f.readlines()
-            have = set()
             out = []
-            for loc in LOCALES:
-                have.add(loc.split()[0])
             for line in lines:
-                name = line.split()[0] if line.split() else ""
-                if line.startswith("#") and name in have:
-                    out.append(line.lstrip("#"))
+                stripped = line.lstrip("#").strip()
+                if stripped and any(stripped.startswith(l.split()[0])
+                                    for l in LOCALES):
+                    out.append(stripped + "\n")
                 else:
                     out.append(line)
+            have = {l.lstrip("#").split()[0] for l in out if l.split()}
             for loc in LOCALES:
-                if not any(l.startswith(loc.split()[0]) for l in out if not l.startswith("#")):
+                if loc.split()[0] not in have:
                     out.append(loc + "\n")
             with open(path, "w", encoding="utf-8") as f:
                 f.writelines(out)
+            with open(f"{TARGET}/etc/default/locale", "w") as f:
+                f.write(f"LANG={lang}\n")
+            with open(f"{TARGET}/etc/environment", "w") as f:
+                f.write(f"LANG={lang}\n")
+            self.log(f"локаль системы: {lang}")
         ops.append(("call", locales))
+        ops.append(("cmd", ["chroot", TARGET, "locale-gen"], None))
 
-        ops.append(("cmd", ["chroot", TARGET, "ln", "-sf",
-                            f"/usr/share/zoneinfo/{s.tz}",
-                            "/etc/localtime"], None))
-        ops.append(("cmd", ["chroot", TARGET, "xbps-reconfigure", "-f",
-                            "glibc-locales"], None))
+        def timezone() -> None:
+            with open(f"{TARGET}/etc/timezone", "w") as f:
+                f.write(s.tz + "\n")
+        ops.append(("call", timezone))
+        if s.tz:
+            ops.append(("cmd", ["chroot", TARGET, "ln", "-sf",
+                                f"/usr/share/zoneinfo/{s.tz}",
+                                "/etc/localtime"], None))
+
+        def keyboard() -> None:
+            variant = f"\nXKBVARIANT={s.variant}" if s.variant else ""
+            content = (f"# PhotonOS: /etc/default/keyboard"
+                       f" (сгенерирован установщиком)\n"
+                       f"XKBMODEL=pc105\nXKBLAYOUT={s.layout}{variant}\n")
+            with open(f"{TARGET}/etc/default/keyboard", "w") as f:
+                f.write(content)
+            self.log(f"раскладка: {s.layout} {s.variant or ''}".rstrip())
+        ops.append(("call", keyboard))
         return ops
 
     def _ops_users(self) -> list:
         s = self.settings
-        ops = [("cmd", ["chroot", TARGET, "useradd", "-m", "-s", "/bin/bash",
+        ops = [("call", self._ensure_groups),
+               ("cmd", ["chroot", TARGET, "useradd", "-m", "-s", "/bin/bash",
                         "-G", USER_GROUPS, s.username], None),
                ("cmd", ["chroot", TARGET, "chpasswd"],
                 f"root:{s.password}\n{s.username}:{s.password}\n")]
         return ops
 
-    def _ops_services(self, services: list) -> list:
-        ops = []
-        for svc in services:
-            ops.append(("cmd", ["ln", "-sf", f"/etc/sv/{svc}",
-                                f"{TARGET}/etc/runit/runsvdir/default/{svc}"],
-                        None))
-        return ops
+    def _ensure_groups(self) -> None:
+        """Минимальная база Debian (variant=apt) не создаёт часть групп
+        (sudo, audio, video, storage, cdrom) — useradd -G на отсутствующей
+        группе падает с кодом 6. Создаём отсутствующие."""
+        missing = []
+        for g in USER_GROUPS.split(","):
+            r = subprocess.run(["chroot", TARGET, "getent", "group", g],
+                               capture_output=True, text=True)
+            if r.returncode != 0 or not r.stdout.strip():
+                missing.append(g)
+        if not missing:
+            self.log("все группы пользователя на месте")
+            return
+        self.log("создаются группы: " + " ".join(missing))
+        for g in missing:
+            subprocess.run(["chroot", TARGET, "groupadd", "-f", g],
+                           check=True)
 
-    def _ops_branding(self) -> list:
-        ops = [("call", self._copy_brand)]
-        return ops
+    def _grub_serial(self) -> None:
+        """Параметры ядра установленной системы: serial-консоль для отладки
+        на железе и CI; plymouth.ignore-serial-consoles - чтобы splash не
+        глушился из-за serial (иначе загрузка выглядит как бесконечный текст).
+        Getty на ttyS0 поднимается явным serial-getty@ttyS0."""
+        path = f"{TARGET}/etc/default/grub"
+        value = ('GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200 '
+                 'plymouth.ignore-serial-consoles"')
+        lines = []
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                lines = f.readlines()
+        out, done = [], False
+        for line in lines:
+            if line.startswith("GRUB_CMDLINE_LINUX="):
+                out.append(value + "\n")
+                done = True
+            else:
+                out.append(line)
+        if not done:
+            out.append(value + "\n")
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(out)
 
-    def _copy_brand(self) -> None:
-        # os-release, skel-дефолты и /etc/photon — с live-сессии в /target
-        for src, dst in (("/usr/lib/os-release", f"{TARGET}/usr/lib/os-release"),):
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-        if os.path.isdir("/etc/skel"):
-            shutil.copytree("/etc/skel", f"{TARGET}/etc/skel",
-                            dirs_exist_ok=True)
-        if os.path.isdir("/etc/photon"):
-            shutil.copytree("/etc/photon", f"{TARGET}/etc/photon",
-                            dirs_exist_ok=True)
+    def _ops_bootloader(self, d=None) -> list:
+        if self.mode == "efi":
+            install = ("cmd", ["chroot", TARGET, "grub-install",
+                               "--target=x86_64-efi",
+                               "--efi-directory=/boot/efi",
+                               "--bootloader-id=PhotonOS", "--recheck"], None)
+            tail = [("call", self._efi_fallback)]
+        else:
+            # BIOS: модули i386-pc (grub-pc-bin) уже в образе, ставим в MBR
+            install = ("cmd", ["chroot", TARGET, "grub-install",
+                               "--target=i386-pc", self.settings.disk], None)
+            tail = []
+        return [install,
+                ("call", self._grub_serial),
+                ("cmd", ["chroot", TARGET, "grub-mkconfig", "-o",
+                         "/boot/grub/grub.cfg"], None),
+                *tail]
 
-    def _ops_bootloader(self) -> list:
-        return [
-            ("cmd", ["chroot", TARGET, "grub-install", "--target=x86_64-efi",
-                     "--efi-directory=/boot/efi", "--bootloader-id=PhotonOS",
-                     "--recheck"], None),
-            ("cmd", ["chroot", TARGET, "grub-mkconfig", "-o",
-                     "/boot/grub/grub.cfg"], None),
-        ]
+    def _efi_fallback(self) -> None:
+        """Страховка: копия grubx64.efi по пути EFI/boot/bootx64.efi —
+        её находит fallback-скан прошивки, если запись NVRAM потерялась."""
+        src = f"{TARGET}/boot/efi/EFI/PhotonOS/grubx64.efi"
+        dst_dir = f"{TARGET}/boot/efi/EFI/boot"
+        dst = f"{dst_dir}/bootx64.efi"
+        if os.path.isfile(src):
+            os.makedirs(dst_dir, exist_ok=True)
+            with open(src, "rb") as a, open(dst, "wb") as b:
+                b.write(a.read())
+            self.log("fallback: EFI/boot/bootx64.efi записан")
+        else:
+            self.log("fallback: grubx64.efi не найден (некритично)")
 
     def _ops_initramfs(self) -> list:
-        return [("cmd", ["chroot", TARGET, "xbps-reconfigure", "-fa",
-                         "linux-lts"], None)]
+        def gen() -> None:
+            # после purge live-пакетов триггер мог и удалить initrd — тогда -c
+            r = subprocess.run(["chroot", TARGET, "update-initramfs",
+                                "-u", "-k", "all"], capture_output=True,
+                               text=True)
+            if r.returncode != 0:
+                self.log("update-initramfs -u не отработал, пробую -c")
+                r = subprocess.run(["chroot", TARGET, "update-initramfs",
+                                    "-c", "-k", "all"], capture_output=True,
+                                   text=True)
+            if r.returncode != 0:
+                raise BackendError("update-initramfs завершился с ошибкой: "
+                                   + (r.stderr or r.stdout)[-400:])
+            self.log("initramfs пересобран (без live-хуков)")
+        return [("call", gen)]
 
     def _ops_umount(self, d) -> list:
-        ops = [("cmd", ["swapoff", "-a"], None),
-               ("cmd", ["umount", "-R", TARGET], None)]
-        return ops
+        return [("cmd", ["swapoff", "-a"], None),
+                ("cmd", ["umount", "-R", TARGET], None),
+                ("cmd", ["umount", SRC_MOUNT], None),
+                ("cmd", ["rmdir", SRC_MOUNT], None)]
 
     # ── исполнение ──────────────────────────────────────────────────────
     def _do(self, op: tuple) -> None:

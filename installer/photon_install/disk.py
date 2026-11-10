@@ -118,17 +118,17 @@ def list_disks(fake: bool = False) -> list:
     return parse_lsblk_json(proc.stdout)
 
 
-def auto_plan(disk_size: int, swap: bool) -> list:
-    """План авто-разметки: ESP 512 МиБ (+ swap 4 ГиБ) + корень = остальное."""
-    esp = 512 * MIB
+def auto_plan(disk_size: int, swap: bool, mode: str = "efi") -> list:
+    """План авто-разметки: EFI - GPT с ESP 512 МиБ, BIOS - MBR без ESP;
+    + swap 4 ГиБ + корень = остальное."""
+    esp = 512 * MIB if mode == "efi" else 0
     swp = 4 * GIB if swap else 0
     root = disk_size - esp - swp
     if swap and root < 4 * GIB:      # диск мал — жертвуем swap
         swp, root = 0, disk_size - esp
-    plan = [{"role": "esp", "size": esp, "fs": "vfat"},
-            {"role": "swap", "size": swp, "fs": "swap"}]
-    if swp == 0:
-        plan = plan[:1]
+    plan = [{"role": "esp", "size": esp, "fs": "vfat"}] if esp else []
+    if swp:
+        plan.append({"role": "swap", "size": swp, "fs": "swap"})
     plan.append({"role": "root", "size": root, "fs": "ext4"})
     return plan
 

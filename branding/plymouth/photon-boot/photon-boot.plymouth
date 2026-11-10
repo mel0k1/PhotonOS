@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=PhotonOS
+Description=PhotonOS boot animation
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/photon-boot
+ScriptFile=/usr/share/plymouth/themes/photon-boot/photon-boot.script

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Добро пожаловать
+GenericName=PhotonOS welcome
+Comment=Обновления, принтеры и резервная копия
+Exec=photon-welcome
+Icon=start-here-photon
+Terminal=false
+Categories=System;Documentation;

@@ -1,16 +1,16 @@
-"""Мастер установки PhotonOS: боковая навигация + шаги (M1).
+"""Мастер установки PhotonOS: боковая навигация + шаги.
 
 Каркас в стиле Deepin Installer: слева шаги, справа контент, снизу навигация.
-Реальная установка подключается на M2 (docs/INSTALLER.md).
+Бэкенд установки — photon_install.backend (Debian-порт, squashfs -> диск).
 """
 from __future__ import annotations
 
 import os
 import subprocess
 
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
     QPlainTextEdit, QPushButton, QRadioButton, QScrollArea, QStackedWidget,
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import disk, style
-from .backend import BackendError, Installer
+from .backend import BackendError, Installer, boot_mode
 from .locale import tr
 from .settings import DE_OPTIONS, InstallSettings, valid_hostname, valid_login
 
@@ -80,7 +80,7 @@ class PickCard(QFrame):
         self.setObjectName("pickcard")
         self.radio = QRadioButton(title)
         self.radio.setObjectName("picktitle")
-        self.radio.setCursor(Qt.PointingHandCursor)
+        self.radio.setCursor(Qt.CursorShape.PointingHandCursor)
         desc_lbl = QLabel(desc)
         desc_lbl.setObjectName("pickdesc")
         desc_lbl.setWordWrap(True)
@@ -165,7 +165,7 @@ class WelcomeStep(Step):
         grid.addWidget(self.tz_lbl, 1, 0)
         grid.addWidget(self.tz_box, 1, 1)
         grid.setColumnStretch(2, 1)
-        grid.setAlignment(Qt.AlignTop)
+        grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         outer = self.layout()
         card = QFrame()
         card.setObjectName("card")
@@ -214,7 +214,7 @@ class KeyboardStep(Step):
         grid.addWidget(self.test_lbl, 2, 0)
         grid.addWidget(self.test_edit, 2, 1)
         grid.setColumnStretch(2, 1)
-        grid.setAlignment(Qt.AlignTop)
+        grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         card = QFrame()
         card.setObjectName("card")
         card.setLayout(grid)
@@ -310,7 +310,8 @@ class DiskStep(Step):
             self.state_lbl.setText("⚠ " + tr(self.lang, "disk_wipe_warn", disk=d.path))
         else:
             self.state_lbl.setText("✔ " + tr(self.lang, "disk_empty_ok"))
-        plan = disk.auto_plan(d.size, self.swap_chk.isChecked())
+        plan = disk.auto_plan(d.size, self.swap_chk.isChecked(),
+                              self.mw.boot_mode)
         self.plan.clear()
         for row in plan:
             QTreeWidgetItem(self.plan, [
@@ -358,10 +359,10 @@ class UserStep(Step):
         self.login_edit = QLineEdit()
         self.pass_lbl = QLabel()
         self.pass_edit = QLineEdit()
-        self.pass_edit.setEchoMode(QLineEdit.Password)
+        self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.pass2_lbl = QLabel()
         self.pass2_edit = QLineEdit()
-        self.pass2_edit.setEchoMode(QLineEdit.Password)
+        self.pass2_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.show_chk = QCheckBox()
         self.show_chk.toggled.connect(self._toggle_echo)
         self.host_lbl = QLabel()
@@ -380,7 +381,7 @@ class UserStep(Step):
         grid.addWidget(self.host_lbl, len(rows) + 1, 0)
         grid.addWidget(self.host_edit, len(rows) + 1, 1)
         grid.setColumnStretch(2, 1)
-        grid.setAlignment(Qt.AlignTop)
+        grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         card = QFrame()
         card.setObjectName("card")
         card.setLayout(grid)
@@ -390,7 +391,8 @@ class UserStep(Step):
         self.retranslate()
 
     def _toggle_echo(self, show: bool) -> None:
-        mode = QLineEdit.Normal if show else QLineEdit.Password
+        mode = (QLineEdit.EchoMode.Normal if show
+                else QLineEdit.EchoMode.Password)
         self.pass_edit.setEchoMode(mode)
         self.pass2_edit.setEchoMode(mode)
 
@@ -427,7 +429,7 @@ class UserStep(Step):
 
 
 class DeStep(Step):
-    """Выбор окружения: наш LXQt, MacShell, без DE и другие (бейджи)."""
+    """Выбор окружения: наш LXQt, без DE и другие (бейджи)."""
     TITLE, SUB = "de_h1", "de_sub"
 
     def __init__(self, mw):
@@ -447,11 +449,15 @@ class DeStep(Step):
             card.radio.toggled.connect(self._picked)
             self.cards.append((card, opt))
             flow.addWidget(card)
+        self.mail_chk = QCheckBox(tr(mw.lang, "de_mail"))
+        self.mail_chk.setChecked(mw.settings.mail)
+        self.mail_chk.toggled.connect(self._mail_toggled)
+        flow.addWidget(self.mail_chk)
         holder = QWidget()
         holder.setLayout(flow)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(holder)
         scroll.setMaximumWidth(720)
         self.layout().addWidget(scroll)
@@ -461,8 +467,12 @@ class DeStep(Step):
             if card.radio.isChecked():
                 self.mw.settings.de = opt["id"]
 
+    def _mail_toggled(self, on: bool) -> None:
+        self.mw.settings.mail = on
+
     def apply(self, s):
         s.de = self.mw.settings.de
+        s.mail = self.mail_chk.isChecked()
 
     def retranslate(self):
         super().retranslate()
@@ -471,6 +481,7 @@ class DeStep(Step):
             for lbl in card.findChildren(QLabel):
                 if lbl.objectName() == "badge":
                     lbl.setText(tr(self.lang, opt["badge"]))
+        self.mail_chk.setText(tr(self.lang, "de_mail"))
 
 
 class SummaryStep(Step):
@@ -497,6 +508,9 @@ class SummaryStep(Step):
             ("sum_user", f"{s.fullname} ({s.username})" if s.fullname else s.username),
             ("sum_host", s.hostname),
             ("sum_de", s.de_title()),
+            ("sum_mail", "Claws Mail" if s.mail else tr(self.lang, "sum_no")),
+            ("sum_boot", "EFI (UEFI)" if self.mw.boot_mode == "efi"
+                         else "BIOS (legacy)"),
         ]
         for key, value in rows:
             QTreeWidgetItem(self.tree, [tr(self.lang, key), str(value)])
@@ -507,14 +521,14 @@ class SummaryStep(Step):
         self.tree.setHeaderLabels([tr(self.lang, "param_label"), ""])
 
 
-# ── установка (M2) ──────────────────────────────────────────────────────
+# ── установка ──────────────────────────────────────────────────────
 
 class InstallThread(QThread):
     """Бэкенд в отдельном потоке; сигналы уже потокобезопасны (queued)."""
-    step_sig = Signal(str, int, int)
-    log_sig = Signal(str)
-    done_sig = Signal()
-    fail_sig = Signal(str)
+    step_sig = pyqtSignal(str, int, int)
+    log_sig = pyqtSignal(str)
+    done_sig = pyqtSignal()
+    fail_sig = pyqtSignal(str)
 
     def __init__(self, settings, dry_run: bool = False):
         super().__init__()
@@ -558,7 +572,7 @@ class ProgressStep(Step):
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         self.log.setFont(QFont("DejaVu Sans Mono", 9))
-        self.log.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.log.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         body.addWidget(self.tree, 1)
         body.addWidget(self.log, 2)
         self.layout().addLayout(body, 1)
@@ -640,6 +654,7 @@ class MainWindow(QMainWindow):
         self.lang = lang
         self.fake_disks = fake_disks
         self.dry_run = dry_run
+        self.boot_mode = boot_mode()
         self.settings = InstallSettings(lang=lang)
         self.settings.tz = current_timezone()
         self.step_idx = 0
@@ -669,9 +684,9 @@ class MainWindow(QMainWindow):
             row = QLabel("")
             row.setObjectName("steprow")
             row.setFixedHeight(34)
-            row.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            row.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
             row.setContentsMargins(10, 0, 10, 0)
-            row.setCursor(Qt.PointingHandCursor)
+            row.setCursor(Qt.CursorShape.PointingHandCursor)
             side_l.addWidget(row)
             self.step_rows.append(row)
         side_l.addStretch(1)
@@ -698,7 +713,7 @@ class MainWindow(QMainWindow):
         if warn_root:
             warn = QLabel(tr(lang, "root_warn"))
             warn.setObjectName("warn")
-            warn.setAlignment(Qt.AlignCenter)
+            warn.setAlignment(Qt.AlignmentFlag.AlignCenter)
             warn.setContentsMargins(0, 6, 0, 6)
             content.addWidget(warn)
 

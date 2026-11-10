@@ -1,75 +1,142 @@
-# Список пакетов live-образа PhotonOS.
-# Формат: один пакет на строку, строки с # — комментарии.
-# Ядро задаётся отдельно флагом -v linux-lts в build/build-iso.sh.
+# Пакеты live-образа PhotonOS (Debian trixie). База - mmdebstrap
+# --variant=apt (essential + apt); здесь - всё остальное.
 
-# база Void Linux: glibc, runit, xbps, elogind
-base-system
-sudo
-nano
-curl
-git
+# ядро и live-механика
+linux-image-amd64
+live-boot
+live-config
+live-tools
+initramfs-tools
+zstd
+# live-юзер: без d-i-утилиты user-setup live-config молча не отрабатывает
+user-setup
+
+# загрузочная анимация photon-boot (тема ставится оверлеем из branding/)
+plymouth
+plymouth-label
+
+# LXQt — ядро окружения, без метапакетов-мусора
+lxqt-core
+lxqt-panel
+lxqt-runner
+lxqt-session
+lxqt-archiver
+lxqt-powermanagement
+lxqt-policykit
+lxqt-sudo
+pcmanfm-qt
+pcmanfm-qt-l10n
+qterminal
+qterminal-l10n
+lximage-qt
+lximage-qt-l10n
+openbox
+obconf-qt
+picom
+xdg-desktop-portal-lxqt
+xdg-desktop-portal-gtk
+
+# дисплейный менеджер и сессия
+sddm
+xserver-xorg
+xserver-xorg-video-all
+xserver-xorg-input-libinput
 
 # сеть
-NetworkManager
-network-manager-applet
+network-manager
+network-manager-gnome
+ca-certificates
+curl
 
-# графика: Xorg + LXQt + стек оформления в духе Deepin
-xorg
-sddm
-lxqt
-pcmanfm-qt
-qterminal
-lximage-qt
-lxqt-archiver
-obconf-qt
-lxqt-powermanagement
-xdg-desktop-portal-lxqt
-
-# оформление: плоский светлый стиль, тени/полупрозрачность
-openbox
-picom
+# оформление: LXQt-тема Onyxian-Rounded идёт оверлеем (/usr/share/lxqt/themes),
+# Kvantum — движок виджетов (Orchis вендорится оверлеем в /usr/share/Kvantum)
 papirus-icon-theme
 arc-theme
-
-# сессия MacShell (macOS Tahoe-стиль, docs/MACSHELL.md):
-# hyprland/hyprlock/hypridle/portal — НАШИ пакеты из pkg/srcpkgs,
-# попадают в ISO через локальный репозиторий (build/build-iso.sh);
-# остальное — из репозитория Void.
-hyprland
-hyprlock
-hypridle
-xdg-desktop-portal-hyprland
-quickshell
-# программный Vulkan для Hyprland в VM (на живом железе — драйверы GPU)
-mesa-vulkan-lavapipe
-awww
-kitty
-cliphist
-grim
-slurp
-wl-clipboard
-wf-recorder
-brightnessctl
-inotify-tools
-pipewire
-wireplumber
-playerctl
 qt6ct
-font-inter
-noto-fonts-emoji
-polkit-gnome
-xdg-desktop-portal
-xdg-desktop-portal-gtk
-fastfetch
+qt6-style-kvantum
+# ВНИМАНИЕ: qt6-svg-plugins откатили - с ним lxqt-panel в TCG стартует окном 1x1
+lxqt-themes
+# переводы ru: .qm лежат в -l10n пакетах, метапакеты их не тянут
+liblxqt-l10n
+lxqt-panel-l10n
+lxqt-runner-l10n
+lxqt-session-l10n
+lxqt-archiver-l10n
+lxqt-powermanagement-l10n
+lxqt-policykit-l10n
+lxqt-sudo-l10n
+obconf-qt-l10n
+# управление GUI из серийной консоли (клики/клавиатура по X) — автотесты
+xdotool
+# X-диагностика live-сессии (xwininfo/xdpyinfo) — серийная отладка
+x11-utils
 
-# загрузочная анимация (тема photon-boot ставится оверлеем из pkg/)
-plymouth
+# шрифты
+fonts-noto-core
+fonts-noto-color-emoji
 
-# графический установщик (PySide6, docs/INSTALLER.md)
-python3-pyside6
-python3-pyside6-gui
-python3-pyside6-widgets
-
-# шрифты и интеграция
-noto-fonts-ttf
+# утилиты PhotonOS и базовые удобства
+sudo
+nano
 xdg-user-dirs
+dbus-x11
+polkitd
+pkexec
+upower
+# gvfs: без него gio не знает trash:/// - нет ярлыка Корзины и metadata::trusted
+gvfs
+gvfs-daemons
+
+# офис: Writer и Calc без метапакета (Impress/Base/Draw не ставим);
+# Liberation - метрическая замена Times/Arial в docx, hunspell-ru - орфография
+libreoffice-writer
+libreoffice-calc
+libreoffice-l10n-ru
+fonts-liberation
+hunspell-ru
+qpdfview
+# печать: CUPS + автообнаружение сетевых принтеров (cups-browsed, avahi)
+cups
+cups-client
+cups-browsed
+avahi-daemon
+cups-pk-helper
+system-config-printer
+printer-driver-gutenprint
+printer-driver-hpcups
+printer-driver-splix
+printer-driver-brlaser
+# почта; rsync - photon-backup; featherpad - блокнот для текстов
+claws-mail
+rsync
+featherpad
+
+# слабые ПК: earlyoom убивает зависший процесс до OOM-зависания,
+# zram сжимает память; их настройка - оверлеем (etc/default, etc/sysctl.d)
+earlyoom
+zram-tools
+
+# установщик: PyQt6-мастер + бэкенд (sfdisk, GRUB EFI в /target);
+# e2fsprogs не essential, а mkfs.ext4 нужен установщику и fsck
+e2fsprogs
+python3-pyqt6
+fdisk
+efibootmgr
+grub-efi-amd64
+# модули i386-pc: BIOS-установки grub-install в MBR (не конфликтует с grub-efi)
+grub-pc-bin
+
+# инструменты сборки ISO (гостевые: isolinux, grub-efi, fat)
+isolinux
+syslinux-common
+grub-efi-amd64-bin
+dosfstools
+mtools
+pipewire
+pipewire-pulse
+wireplumber
+login
+qt6-image-formats-plugins
+libqt6svg6
+locales
+dbus-user-session

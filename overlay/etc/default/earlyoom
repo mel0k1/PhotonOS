@@ -1,0 +1,2 @@
+# PhotonOS: порог срабатывания - 10% свободной RAM или 10% swap
+EARLYOOM_ARGS="-m 10 -s 10"

@@ -1,137 +1,317 @@
 #!/bin/sh
-# Сборка live-ISO PhotonOS через void-mklive.
-#
-# Требования: хост Void Linux x86_64 (в CI — контейнер ghcr.io/void-linux/void-mklive),
-# git, ~12 ГБ свободного места. Ядро образа: linux-lts. Вариант: glibc.
-#
-# Переменные окружения:
-#   ARCH         архитектура ISO (по умолчанию x86_64)
-#   REPO         репозиторий XBPS (по умолчанию https://repo-default.voidlinux.org/current)
-#   MKLIVE_DIR   путь к клону void-mklive (по умолчанию ./void-mklive, клонируется сам)
-#   VP_DIR       путь к клону void-packages для стека Hyprland
-#                (по умолчанию ./build/void-packages, клонируется сам)
-#   PHOTON_MACSHELL  0 — не ставить MacShell в skel (по умолчанию 1 — ставить)
-#
-# Результат: dist/PhotonOS-live-<arch>-<дата>.iso
+# Сборка live-ISO PhotonOS (Debian, suite: trixie):
+# mmdebstrap -> customize-хук -> overlay/брендинг -> mksquashfs ->
+# isolinux (BIOS) + bootx64.efi (EFI) -> xorriso.
+# Хосту: mmdebstrap, squashfs-tools, xorriso, mtools, dosfstools.
+# Результат: dist/PhotonOS-live-amd64-<дата>.iso
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-ARCH="${ARCH:-x86_64}"
-REPO="${REPO:-https://repo-default.voidlinux.org/current}"
-MKLIVE_DIR="${MKLIVE_DIR:-$ROOT/void-mklive}"
-VP_DIR="${VP_DIR:-$ROOT/build/void-packages}"
+SUITE="${SUITE:-trixie}"
+MIRROR="${MIRROR:-https://deb.debian.org/debian}"
+ARCH="${ARCH:-amd64}"
 OUT_DIR="$ROOT/dist"
-STAGE="$ROOT/build/.stage-overlay"
-HOSTREPO="$ROOT/build/hostrepo"
-MACSHELL="${PHOTON_MACSHELL:-1}"
-
-# Порядок сборки стека Hyprland (топологический; шаблоны в pkg/srcpkgs).
-HYPR_CHAIN="lua5.5 hwdata hyprutils hyprlang glaze hyprland-protocols \
-aquamarine hyprcursor hyprgraphics hyprwire hyprtoolkit \
-hyprland hyprlock hypridle xdg-desktop-portal-hyprland"
+WORK="$ROOT/build/.work"
 
 log() { printf '\033[36m==> \033[1m%s\033[0m\n' "$1"; }
 
-# xbps-src в CI-контейнере работает под root только с этим флагом (см. xbps-src)
-export XBPS_ALLOW_CHROOT_BREAKOUT=1
+PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/packages.list" | paste -sd,)
+STAMP=$(date +%Y%m%d)
+OUT="$OUT_DIR/PhotonOS-live-$ARCH-$STAMP.iso"
 
-log "PhotonOS ISO | arch=$ARCH | repo=$REPO"
+mkdir -p "$OUT_DIR" "$WORK"
+ROOTFS="$WORK/rootfs"
+ISO="$WORK/iso"
 
-# 1. void-mklive
-if [ ! -d "$MKLIVE_DIR/.git" ]; then
-    log "клонирую void-mklive"
-    git clone --depth=1 https://github.com/void-linux/void-mklive.git "$MKLIVE_DIR"
-fi
-
-# 2. сцена оверлея: брендинг + утилиты PhotonOS попадают в корень образа
-log "готовлю оверлей"
-rm -rf "$STAGE"
-mkdir -p "$STAGE/usr/bin" "$STAGE/usr/share/plymouth/themes"
-cp -a "$ROOT/overlay/." "$STAGE/"
-install -m 0755 "$ROOT/ppm/ppm" "$STAGE/usr/bin/ppm"
-install -m 0755 "$ROOT/fetch/photon-fetch" "$STAGE/usr/bin/photon-fetch"
-# загрузочная анимация: каноническое место — шаблон пакета photon-boot-splash
-cp -a "$ROOT/pkg/srcpkgs/photon-boot-splash/files/photon-boot" \
-    "$STAGE/usr/share/plymouth/themes/photon-boot"
-
-# графический установщик (installer/, docs/INSTALLER.md)
-install -m 0755 "$ROOT/installer/photon-installer" "$STAGE/usr/bin/photon-installer"
-mkdir -p "$STAGE/usr/share/photon-installer" "$STAGE/usr/share/applications"
-cp -a "$ROOT/installer/photon_install" "$STAGE/usr/share/photon-installer/"
-rm -rf "$STAGE/usr/share/photon-installer/photon_install/__pycache__"
-install -m 0644 "$ROOT/installer/photon-installer.desktop" \
-    "$STAGE/usr/share/applications/photon-installer.desktop"
-chmod +x "$STAGE/usr/share/applications/photon-installer.desktop"
-
-# 3. MacShell (macOS Tahoe-стиль поверх Hyprland) -> /etc/skel, чтобы и
-# live-сессия, и установленный пользователь получали готовую настройку.
-# Ставим штатным install.sh из вендоренной копии (pkg/vendor/MacShell):
-# он копирует Quickshell-модули, пишет macshell.lua и хуки в hyprland.lua.
-if [ "$MACSHELL" = 1 ]; then
-    log "ставлю MacShell в skel (install.sh --local)"
-    SKEL="$STAGE/etc/skel"
-    # базовый hyprland.lua лежит в overlay/etc/skel — install.sh допишет
-    # require("macshell") и Liquid-Glass правила сам
-    # install.sh требует bash; git-контекст не нужен (--local)
-    ( cd "$ROOT/pkg/vendor/MacShell" && HOME="$SKEL" bash install.sh \
-        --local --no-deps --no-services --no-gui --no-start --no-verify \
-        --no-auto-update -y ) > /dev/null
-    log "MacShell -> $SKEL/.config/quickshell"
-fi
-
-# 4. локальный репозиторий со стеком Hyprland (в upstream Void пакетов нет):
-# xbps-src собирает цепочку из pkg/srcpkgs, xbps-rindex подписывает и
-# отдаёт репозиторий mklive через -r. Отключается: PHOTON_HYPR=0.
-LOCAL_REPO_ARGS=""
-if [ "${PHOTON_HYPR:-1}" = 1 ]; then
-    log "собираю стек Hyprland: $HYPR_CHAIN"
-    if [ ! -d "$VP_DIR/.git" ]; then
-        git clone --depth=1 https://github.com/void-linux/void-packages.git "$VP_DIR"
+# Возобновляемость: маркер после mmdebstrap - повторный запуск пропускает bootstrap
+if [ -f "$ROOTFS/.photon-rootfs-done" ]; then
+    log "resume: rootfs уже готов — пропускаю mmdebstrap"
+    SKIP_ROOTFS=1
+else
+    SKIP_ROOTFS=0
+    # кэш скачанных deb переживает wipe (докачка после обрыва)
+    if [ -d "$ROOTFS/var/cache/apt/archives" ]; then
+        rm -rf "$WORK/apt-cache-keep"
+        mv "$ROOTFS/var/cache/apt/archives" "$WORK/apt-cache-keep"
     fi
-    "$ROOT/pkg/build.sh" "$VP_DIR"
-    ( cd "$VP_DIR" && ./xbps-src binary-bootstrap )
-    # xbps в контейнере 0.59, свежее дерево требует >= 0.60
-    ( cd "$VP_DIR" && ./xbps-src bootstrap-update )
-    for p in $HYPR_CHAIN; do
-        ( cd "$VP_DIR" && ./xbps-src pkg "$p" )
-    done
-    mkdir -p "$HOSTREPO"
-    cp "$VP_DIR/hostdir/binpkgs/"*.xbps "$HOSTREPO/"
-    ( cd "$HOSTREPO" && xbps-rindex -a ./*.xbps )
-    # подписываем repodata свежим ключом: xbps-install принимает репозиторий
-    # с неизвестным ключом с предупреждением, неподписанный — отклоняет
-    PRIVKEY=$(mktemp)
-    openssl genrsa -out "$PRIVKEY" 2048 2>/dev/null || true
-    ( cd "$HOSTREPO" && xbps-rindex --privkey "$PRIVKEY" -s --signedby "PhotonOS CI" . ) \
-        || true
-    rm -f "$PRIVKEY"
-    LOCAL_REPO_ARGS="-r $HOSTREPO"
-    log "локальный репо: $HOSTREPO ($(ls "$HOSTREPO"/*.xbps | wc -l) пакетов)"
+    rm -rf "$ROOTFS" "$ISO"
+    mkdir -p "$ROOTFS" "$ISO"
+    if [ -d "$WORK/apt-cache-keep" ]; then
+        mkdir -p "$ROOTFS/var/cache/apt"
+        mv "$WORK/apt-cache-keep" "$ROOTFS/var/cache/apt/archives"
+    fi
 fi
 
-# 5. пакеты и сервисы из списков (комментарии и пустые строки игнорируются)
-PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/packages.list" | tr '\n' ' ')
-SVC=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/build/services.list" | tr '\n' ' ')
+# ------------------------------------------------------- 1. хук кастомизации
+# хук исполняется НА ХОСТЕ (корень = $1), гостевой код - через chroot
+HOOK="$WORK/photon-hook.sh"
+cat > "$HOOK" <<'EOS'
+#!/bin/sh
+set -eu
+chroot "$1" /bin/sh <<'CHROOT'
+set -eu
+export DEBIAN_FRONTEND=noninteractive
 
-mkdir -p "$OUT_DIR"
-OUT="$OUT_DIR/PhotonOS-live-$ARCH-$(date +%Y%m%d).iso"
-
-# 6. mklive: glibc-архитектура, ядро linux-lts, оверлей, пакеты, сервисы
-# -C "quiet splash" — командная строка ядра для plymouth-анимации
-cd "$MKLIVE_DIR"
-set -- ./mklive.sh \
-    -a "$ARCH" \
-    $LOCAL_REPO_ARGS \
-    -r "$REPO" \
-    -v linux-lts \
-    -T "PhotonOS Live" \
-    -I "$STAGE" \
-    -o "$OUT" \
-    -p "$PKGS" \
-    -C "quiet splash"
-if [ -n "$SVC" ]; then
-    set -- "$@" -S "$SVC"
+# локали: генерируем сразу в chroot - live-config в boot не успевает
+if [ -f /etc/locale.gen ]; then
+    sed -i 's/^# *\(ru_RU.UTF-8 UTF-8\)/\1/;s/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+    locale-gen
+    update-locale LANG=ru_RU.UTF-8
 fi
 
-log "запускаю: $*"
-exec "$@"
+# initramfs мог собраться до live-boot/plymouth — пересобираем с их хуками
+DEBIAN_FRONTEND=noninteractive update-initramfs -u -k all
+
+# сервисы: дисплейный менеджер и сеть; zram/earlyoom - слабые ПК;
+# serial-getty - явно: после plymouth.ignore-serial-consoles и без него
+# console=ttyS0 генератор getty сам его не включит
+systemctl enable sddm.service NetworkManager.service photon-diag.service \
+    zramswap.service earlyoom.service serial-getty@ttyS0.service \
+    2>/dev/null || true
+
+# EFI-загрузчик со встроенным конфигом (bg.png кладёт предыдущий хук);
+# пишем в /root - mmdebstrap вычищает /tmp чрута.
+cat > /tmp/grub-live.cfg <<'GRUB'
+set timeout=5
+set default=0
+loadfont (memdisk)/boot/grub/fonts/ascii.pf2
+set gfxmode=1024x768
+set gfxpayload=keep
+insmod all_video
+insmod png
+insmod gfxterm
+terminal_output gfxterm
+background_image (memdisk)/boot/grub/bg.png
+# search обязателен: без него /live/vmlinuz ищется в memdisk ("file not found")
+search --no-floppy --set=root --file /live/vmlinuz
+menuentry "PhotonOS Live" {
+    linux /live/vmlinuz boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
+    initrd /live/initrd
+}
+menuentry "PhotonOS Live (RAM)" {
+    linux /live/vmlinuz boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
+    initrd /live/initrd
+}
+GRUB
+grub-mkstandalone -O x86_64-efi -o /root/bootx64.efi \
+    "boot/grub/grub.cfg=/tmp/grub-live.cfg" \
+    "boot/grub/bg.png=/root/bg.png" \
+    "boot/grub/fonts/ascii.pf2=/usr/share/grub/ascii.pf2"
+
+apt-get clean
+rm -rf /var/lib/apt/lists/* /var/tmp/*
+CHROOT
+EOS
+chmod +x "$HOOK"
+
+log "mmdebstrap: корень Debian $SUITE + пакеты PhotonOS"
+if [ "$SKIP_ROOTFS" = "1" ]; then
+    log "resume: фаза mmdebstrap пропущена"
+else
+# MMDEBSTRAP_MODE/EXTRA_ARGS - флаги mmdebstrap (на CI с урезанным seccomp
+# помогает fakechroot); PHOTON_CHROOT_SHIM - шим chroot, инжектится extract-хуком.
+set --
+if [ -n "${PHOTON_CHROOT_SHIM:-}" ] && [ "$MMDEBSTRAP_MODE" = "fakechroot" ]; then
+    set -- "$@" --extract-hook \
+        "cp $PHOTON_CHROOT_SHIM \$1/usr/sbin/chroot"
+    if [ -n "${PHOTON_PRESEED:-}" ]; then
+        set -- "$@" --extract-hook "$PHOTON_PRESEED \$1"
+    fi
+fi
+for a in ${MMDEBSTRAP_EXTRA_ARGS:-}; do
+    set -- "$@" "$a"
+done
+mmdebstrap \
+    --mode="${MMDEBSTRAP_MODE:-auto}" \
+    "$@" \
+    --variant=apt \
+    --architectures="$ARCH" \
+    --aptopt='Acquire::Retries "3"' \
+    --aptopt='Apt::Install-Recommends "false"' \
+    --dpkgopt='path-exclude=/usr/share/doc/*' \
+    --dpkgopt='path-exclude=/usr/share/man/*' \
+    --dpkgopt='path-exclude=/usr/share/locale/*' \
+    --dpkgopt='path-include=/usr/share/locale/ru*' \
+    --dpkgopt='path-include=/usr/share/locale/en*' \
+    --include="$PKGS" \
+    --customize-hook="copy-in $ROOT/design/boot/bg.png /root" \
+    --customize="$HOOK" \
+    "$SUITE" "$ROOTFS" "$MIRROR"
+touch "$ROOTFS/.photon-rootfs-done"
+fi
+
+# EFI-загрузчик лежит в rootfs/root (tmp mmdebstrap вычищает сам)
+log "загрузчики: перенос bootx64.efi"
+mkdir -p "$ISO/EFI/boot"
+if [ -s "$ROOTFS/root/bootx64.efi" ]; then
+    cp "$ROOTFS/root/bootx64.efi" "$ISO/EFI/boot/bootx64.efi"
+    rm -f "$ROOTFS/root/bootx64.efi" "$ROOTFS/root/bg.png"
+else
+    echo "ОШИБКА: grub-mkstandalone не создал bootx64.efi" >&2
+    ls -la "$ROOTFS/root/" 2>/dev/null || true
+    exit 1
+fi
+
+# ------------------------------------------------- 2. оверлей и брендинг
+log "оверлей PhotonOS: LXQt-дизайн, брендинг, plymouth photon-boot"
+cp -a "$ROOT/overlay/." "$ROOTFS/"
+chmod +x "$ROOTFS/usr/share/photon/diag.sh" \
+       "$ROOTFS/usr/share/photon/desktop-sync.sh" \
+       "$ROOTFS/usr/share/photon/panel-guard.sh"
+# photon-diag включаем после оверлея: в customize-хуке юнита ещё нет
+mkdir -p "$ROOTFS/etc/systemd/system/multi-user.target.wants"
+ln -sf ../photon-diag.service \
+    "$ROOTFS/etc/systemd/system/multi-user.target.wants/photon-diag.service"
+
+# декорации openbox в тон темы (fallback, пока у юзера нет своего rc.xml)
+if [ -f "$ROOTFS/etc/xdg/openbox/rc.xml" ]; then
+    sed -i '/<theme>/,/<\/theme>/ s|<name>[^<]*</name>|<name>Arc-Dark</name>|' \
+        "$ROOTFS/etc/xdg/openbox/rc.xml"
+fi
+
+# PipeWire глобальными user-юнитами: локальный enable live-юзера пресеты не применяет
+mkdir -p "$ROOTFS/etc/systemd/user/sockets.target.wants" \
+         "$ROOTFS/etc/systemd/user/default.target.wants" \
+         "$ROOTFS/etc/systemd/user/pipewire.service.wants"
+ln -sf /usr/lib/systemd/user/pipewire.socket \
+    "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire.socket"
+ln -sf /usr/lib/systemd/user/pipewire-pulse.socket \
+    "$ROOTFS/etc/systemd/user/sockets.target.wants/pipewire-pulse.socket"
+ln -sf /usr/lib/systemd/user/pipewire.service \
+    "$ROOTFS/etc/systemd/user/default.target.wants/pipewire.service"
+ln -sf /usr/lib/systemd/user/wireplumber.service \
+    "$ROOTFS/etc/systemd/user/pipewire.service.wants/wireplumber.service"
+
+# photon-backup: ежедневный таймер пользователя
+mkdir -p "$ROOTFS/etc/systemd/user/timers.target.wants"
+ln -sf ../photon-backup.timer \
+    "$ROOTFS/etc/systemd/user/timers.target.wants/photon-backup.timer"
+
+install -Dm0755 "$ROOT/fetch/photon-fetch" "$ROOTFS/usr/bin/photon-fetch"
+
+# ppm - обёртка над apt: единый вход для установки/обновления
+install -m0755 "$ROOT/ppm/ppm" "$ROOTFS/usr/bin/ppm"
+
+# установщик: мастер (PyQt6) + бэкенд — доступны из live-сессии
+log "установщик PhotonOS: мастер и бэкенд"
+mkdir -p "$ROOTFS/usr/lib/photon_install"
+cp -a "$ROOT/installer/photon_install/." "$ROOTFS/usr/lib/photon_install/"
+install -m0755 "$ROOT/installer/photon-installer" "$ROOTFS/usr/bin/photon-installer"
+install -m0644 "$ROOT/installer/photon-installer.desktop" \
+    "$ROOTFS/usr/share/applications/photon-installer.desktop"
+find "$ROOTFS/usr/lib/photon_install" -type d -name '__pycache__' \
+    -prune -exec rm -rf {} + 2>/dev/null || true
+
+# welcome-окно первого входа: обновления, принтеры, копия, почта
+log "photon-welcome: окно первого входа"
+mkdir -p "$ROOTFS/usr/lib/photon_welcome"
+cp -a "$ROOT/welcome/photon_welcome/." "$ROOTFS/usr/lib/photon_welcome/"
+install -m0755 "$ROOT/welcome/photon-welcome" "$ROOTFS/usr/bin/photon-welcome"
+install -m0644 "$ROOT/welcome/photon-welcome.desktop" \
+    "$ROOTFS/usr/share/applications/photon-welcome.desktop"
+install -m0644 "$ROOT/welcome/photon-welcome-autostart.desktop" \
+    "$ROOTFS/etc/xdg/autostart/photon-welcome-autostart.desktop"
+find "$ROOTFS/usr/lib/photon_welcome" -type d -name '__pycache__' \
+    -prune -exec rm -rf {} + 2>/dev/null || true
+
+# sudo без пароля в live-сессии; установщик снимает правило в /target
+chmod 0440 "$ROOTFS/etc/sudoers.d/photon-live"
+
+# photon-backup: rsync-копия домашнего каталога
+install -m0755 "$ROOT/backup/photon-backup" "$ROOTFS/usr/bin/photon-backup"
+mkdir -p "$ROOTFS/usr/share/plymouth/themes"
+cp -a "$ROOT/branding/plymouth/photon-boot" \
+    "$ROOTFS/usr/share/plymouth/themes/photon-boot"
+
+# дефолтная plymouth-тема = photon-boot: plymouthd.conf главнее
+# plymouthd.defaults, а там у Debian Theme=ceratopsian (темы в системе нет) -
+# без явного конфига plymouthd молча рисует builtin-сплэш (серые точки)
+mkdir -p "$ROOTFS/etc/plymouth"
+cat > "$ROOTFS/etc/plymouth/plymouthd.conf" <<'EOF'
+[Daemon]
+Theme=photon-boot
+EOF
+ln -sfn /usr/share/plymouth/themes/photon-boot/photon-boot.plymouth \
+    "$ROOTFS/usr/share/plymouth/themes/default.plymouth"
+
+# initramfs пересобрать ПОСЛЕ установки темы: plymouth-хук пакует дефолтную
+# тему, её script-плагин и кадры. Хук отработал в chroot до темы — в initrd
+# оставался только fallback (серый фон с точками вместо анимации).
+mount -t proc proc "$ROOTFS/proc"
+chroot "$ROOTFS" update-initramfs -u -k all
+umount "$ROOTFS/proc"
+
+# hostname
+echo photon > "$ROOTFS/etc/hostname"
+
+# чистка
+rm -rf "$ROOTFS/var/lib/apt/lists/"* "$ROOTFS/var/tmp/"* "$ROOTFS/tmp/"* 2>/dev/null || true
+
+# ------------------------------------------------------------- 3. squashfs
+log "mksquashfs -> live/filesystem.squashfs"
+mkdir -p "$ISO/live"
+cp "$ROOTFS"/boot/vmlinuz-* "$ISO/live/vmlinuz"
+cp "$ROOTFS"/boot/initrd.img-* "$ISO/live/initrd"
+# -all-root: файлы сборщика (overlay) с чужим uid -> root; иначе sudo
+# игнорирует /etc/sudoers.d, а установщик переносит uid на диск
+mksquashfs "$ROOTFS" "$ISO/live/filesystem.squashfs" \
+    -comp xz -b 1M -noappend -all-root \
+    -e boot -e .photon-rootfs-done
+
+# --------------------------------------------------------- 4. загрузчики
+log "загрузчики: isolinux (BIOS) + bootx64.efi (EFI)"
+mkdir -p "$ISO/isolinux"
+
+if [ -f "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" ]; then
+    cp "$ROOTFS/usr/lib/ISOLINUX/isolinux.bin" "$ISO/isolinux/"
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/ldlinux.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/vesamenu.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/libcom32.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOTFS/usr/lib/syslinux/modules/bios/libutil.c32" "$ISO/isolinux/" 2>/dev/null || true
+    cp "$ROOT/design/boot/bg.png" "$ISO/bg.png"
+    cat > "$ISO/isolinux/isolinux.cfg" <<'EOF'
+default vesamenu.c32
+prompt 0
+timeout 50
+
+MENU RESOLUTION 1024 768
+MENU BACKGROUND /bg.png
+MENU TITLE Photon OS
+
+label photon
+    menu label PhotonOS Live
+    kernel /live/vmlinuz
+    append initrd=/live/initrd boot=live components quiet splash username=anon console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
+
+label ram
+    menu label PhotonOS Live (RAM)
+    kernel /live/vmlinuz
+    append initrd=/live/initrd boot=live components quiet splash username=anon rd.live.ram console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles
+EOF
+fi
+
+# EFI El Torito: FAT-образ с bootx64.efi
+if [ -s "$ISO/EFI/boot/bootx64.efi" ]; then
+    dd if=/dev/zero of="$ISO/efiboot.img" bs=1M count=8 status=none
+    mkfs.vfat "$ISO/efiboot.img" >/dev/null
+    mmd -i "$ISO/efiboot.img" ::EFI ::EFI/boot
+    mcopy -i "$ISO/efiboot.img" "$ISO/EFI/boot/bootx64.efi" ::EFI/boot/
+fi
+
+# ------------------------------------------------------------ 5. ISO
+log "xorriso -> $OUT"
+HYBRID=$(ls "$ROOTFS/usr/lib/ISOLINUX/isohdpfx.bin" 2>/dev/null || true)
+set -- xorriso -as mkisofs -r -V "PHOTONOS_LIVE" -J -joliet-long
+if [ -n "$HYBRID" ]; then
+    set -- "$@" -isohybrid-mbr "$HYBRID" \
+        -b isolinux/isolinux.bin -c isolinux/boot.cat \
+        -no-emul-boot -boot-load-size 4 -boot-info-table
+fi
+if [ -f "$ISO/efiboot.img" ]; then
+    set -- "$@" -eltorito-alt-boot -e efiboot.img -no-emul-boot \
+        -isohybrid-gpt-basdat
+fi
+set -- "$@" -o "$OUT" "$ISO"
+"$@"
+
+log "готово: $OUT ($(du -h "$OUT" | cut -f1))"

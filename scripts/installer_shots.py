@@ -2,7 +2,7 @@
 """Оффскрин-скриншоты шагов мастера (проверка дизайна без X-сервера).
 
 Запуск: python3 scripts/installer_shots.py  ->  /tmp/installer-shots/*.png
-Требует PySide6; платформа offscreen, реальные диски не трогаются.
+Требует PyQt6; платформа offscreen, реальные диски не трогаются.
 """
 import os
 import sys
@@ -11,7 +11,7 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "installer"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from photon_install import style  # noqa: E402
 from photon_install.wizard import STEPS, MainWindow  # noqa: E402
@@ -48,7 +48,7 @@ def main() -> int:
             win.go_next()        # apply() текущего шага + переход
 
     # шаг prog — dry-run бэкенда в QThread: интеграционный тест
-    from PySide6.QtCore import QEventLoop, QTimer
+    from PyQt6.QtCore import QEventLoop, QTimer
     win.dry_run = True
     prog = win.steps["prog"]
     win.step_idx = len(STEPS) - 1

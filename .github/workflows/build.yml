@@ -2,10 +2,11 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [debian, main]
     paths-ignore:
       - '**.md'
       - 'logo/**'
+      - 'docs/screens/**'
       - 'LICENSE'
   workflow_dispatch:
 
@@ -15,32 +16,178 @@ concurrency:
 
 jobs:
   iso:
-    name: Сборка live-ISO
+    name: Сборка live-ISO (Debian base)
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    container:
-      # тот же образ, которым собирает сам Void Linux
-      image: ghcr.io/void-linux/void-mklive:20250116R1
-      options: --privileged
-      volumes:
-        - /dev:/dev
+    timeout-minutes: 90
+    permissions:
+      contents: write   # катящийся релиз «iso»: пуш тега + загрузка актива
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Зависимости контейнера
-        # xbps дерева (>= 0.60) новее xbps в образе 2025-01 — обновляем хостовой
-        run: xbps-install -Suy xbps; command -v git >/dev/null 2>&1 || xbps-install -Sy git
+      - name: Инструменты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            mmdebstrap squashfs-tools xorriso mtools dosfstools \
+            debian-archive-keyring fakeroot
 
       - name: Сборка ISO
-        run: ./build/build-iso.sh
+        run: |
+          set -o pipefail
+          sudo -E ./build/build-iso.sh 2>&1 | tee build.log
+          exit "${PIPESTATUS[0]}"
         env:
-          REPO: https://repo-ci.voidlinux.org/current
+          SUITE: trixie
+          MIRROR: https://deb.debian.org/debian
+
+      # метрика слабых ПК: ISO для флешки/старого ноутбука не должен распухать
+      - name: Контроль размера ISO (предел 2500 МБ)
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          MB=$(du -m "$ISO" | cut -f1)
+          echo "ISO: ${MB} МБ (предел 2500)"
+          [ "$MB" -le 2500 ] || { echo "ISO вырос за 2500 МБ - пересмотреть packages.list"; exit 1; }
+
+      # Катящийся релиз «iso»: последняя сборка всегда публична + build.log
+      - name: "Публикация rolling-релиза «iso» (ISO + лог сборки)"
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISO=$(ls dist/*.iso 2>/dev/null | head -1)
+          REPO="$GITHUB_REPOSITORY"
+          touch build.log
+          if [ -n "$ISO" ]; then
+            ARGS=("$ISO" build.log)
+          else
+            ARGS=(build.log)
+          fi
+          gh release delete iso --yes -R "$REPO" || true
+          gh release create iso "${ARGS[@]}" -R "$REPO" \
+            --target "$GITHUB_SHA" \
+            --title "PhotonOS live ISO (rolling)" \
+            --notes "Сборка ветки debian: $GITHUB_SHA (статус джобы: ${{ job.status }}). ISO: $(basename "${ISO:-НЕТ}"). build.log — полный лог сборки." \
+          || gh release upload iso "${ARGS[@]}" -R "$REPO" --clobber || true
 
       - name: Публикация артефакта
         uses: actions/upload-artifact@v4
         with:
-          name: PhotonOS-live-x86_64
+          name: PhotonOS-live-amd64
           path: dist/*.iso
           if-no-files-found: error
+          retention-days: 14
+
+  # smoke-тест: ISO в QEMU (BIOS + EFI/OVMF), скриншоты QMP; PASS =
+  # serial-маркер photon-diag + нечёрные кадры. Артефакт photon-smoke.
+  smoke:
+    name: Smoke-test QEMU (BIOS + EFI/OVMF), скриншоты
+    needs: iso
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    continue-on-error: true   # обкатка: рантайм-тест не ломает статус сборки
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ISO из сборки
+        uses: actions/download-artifact@v4
+        with:
+          name: PhotonOS-live-amd64
+          path: dist
+
+      - name: Инструменты
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 ovmf squashfs-tools xorriso imagemagick
+
+      - name: Санс-чек содержимого squashfs
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          xorriso -osirrox on -indev "$ISO" \
+            -extract /live/filesystem.squashfs /tmp/fs.sqfs >/dev/null
+          L=$(unsquashfs -l /tmp/fs.sqfs)
+          for f in usr/bin/photon-installer \
+                   usr/lib/photon_install \
+                   usr/bin/photon-welcome \
+                   usr/bin/photon-backup \
+                   usr/bin/photon-fetch \
+                   usr/bin/ppm \
+                   usr/lib/photon_welcome \
+                   etc/default/zramswap \
+                   etc/sysctl.d/99-photon-zram.conf \
+                   usr/share/lxqt/themes/Onyxian-Rounded/lxqt-panel.qss \
+                   usr/share/backgrounds/photon-ribbon.jpg \
+                   usr/share/backgrounds/photon-flow.jpg; do
+            echo "$L" | grep -q "$f" || { echo "НЕТ: $f"; exit 1; }
+            echo "ок: $f"
+          done
+
+      - name: Загрузка BIOS + скриншоты
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          python3 scripts/ci_boot.py --iso "$ISO" --mode bios --outdir out/bios --run-install
+
+      - name: Загрузка EFI (OVMF) + скриншоты
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          python3 scripts/ci_boot.py --iso "$ISO" --mode efi --outdir out/efi
+
+      - name: "Артефакты: скриншоты и логи"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: photon-smoke
+          path: out/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # e2e установки: live-ISO -> photon-installer --auto на виртуальный диск
+  # -> перезагрузка -> проверка загрузки установленной системы.
+  # Матрица BIOS и EFI/OVMF. Пока обкатка: рантайм-тест не ломает статус сборки.
+  install-e2e:
+    name: "E2E: установка на диск (${{ matrix.mode }}) и загрузка с него"
+    needs: iso
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [bios, efi]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ISO из сборки
+        uses: actions/download-artifact@v4
+        with:
+          name: PhotonOS-live-amd64
+          path: dist
+
+      - name: Инструменты
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf imagemagick
+
+      - name: Установка на виртуальный диск + загрузка с него
+        run: |
+          ISO=$(ls dist/*.iso | head -1)
+          python3 scripts/ci_install.py --iso "$ISO" --mode ${{ matrix.mode }} \
+            --outdir out/install
+
+      - name: Чистка (виртуальный диск не публикуем)
+        if: always()
+        run: rm -f out/install/disk.qcow2
+
+      - name: "Артефакты: e2e установки (${{ matrix.mode }})"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: photon-install-e2e-${{ matrix.mode }}
+          path: out/
+          if-no-files-found: warn
           retention-days: 14
